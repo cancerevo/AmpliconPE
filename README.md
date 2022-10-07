@@ -74,6 +74,6 @@ Barcodes are then extracted using an internal-loop that generally looks somethin
     continue
 ```
 
-In short, reads are kept if they align to the reference read well and if the barcodes between the forward and revese reads. 
-The barcode extractors process the forward & reverse reads simoltaneously. When a single nucleotide difference is observed 
-between the reads, it is replaced with an 'N'. When an InDel difference is observed between them, 'Length Mismatch' is returned. 
+In short, `MasterRead` internally-stores the reference alignment to both the forward and reverse read. Its methods process 
+both reads in tandem. Reads are kept if they align to the reference read well and if the barcodes between the forward and revese reads. 
+Single nucleotide differences between reads are replaced with an 'N', when an InDel difference generally return a 'Length Mismatch' string. 
