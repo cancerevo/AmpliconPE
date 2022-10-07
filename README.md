@@ -8,6 +8,12 @@ Extracts DNA barcodes from Paired-End Amplicon Sequencing using Smith Waterman a
 * AmpliconPE extracts both known barcodes (barcode sets) and random barcodes intelligently
 * Its fast & simple
 
+## Why _not_ use PEAR?
+
+Because alignined the forward and reverse reads to a reference sequence, rather than each-other,
+is faster and less error-prone. Also, our functionality is built around years of expreience 
+addressing biases and contaminations in barcoding project. However, PEAR works fine. 
+
 ## Usage
 
 AmpliconPE is a highly-extensible python library packaged with convient command-line scripts to 
