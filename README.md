@@ -10,7 +10,7 @@ Extracts DNA barcodes from Paired-End Amplicon Sequencing using Smith Waterman a
 
 ## Why _not_ use PEAR?
 
-Because alignined the forward and reverse reads to a reference sequence, rather than each-other,
+Because aligning the forward and reverse reads to a reference sequence, rather than each other,
 is faster and less error-prone. Also, our functionality is built around years of expreience 
 addressing biases and contaminations in barcoding project. However, PEAR works fine. 
 
