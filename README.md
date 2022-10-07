@@ -51,7 +51,7 @@ to generate barcode sets that are robust to sequencing errors.
 from AmpliconPE import BarcodeSet
 import pandas as pd
 
-sgIDs = pd.read_csv('sgID_info.csv').set_index("target")['ID']
+sgIDs = pd.read_csv('sgID_info.csv').set_index("Targeted Gene")['barcode']
 known_barcodes = BarcodeSet(sgIDs, n_mismatches=1, indel=1)
 ```
 Reads are then processed using the `IterPairedFASTQ` iterator:
