@@ -43,9 +43,9 @@ print(vars(master_read))
 # 'known_slice':slice(8, 16, None),
 # 'random_slice':slice(18,37))}
 ```
-Known barcodes are assigned labels using the `BarcodeSet` --- a sub-class of `dict` that tolerates 
+You can map known barcodes to labels using `BarcodeSet`, a sub-class of `dict` that tolerates 
 mismatches when assigning labels. Use [BARCOSEL](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-018-2262-7)
-to generate barcodes that can tolerate sequencing errors. 
+to generate barcode sets that are robust to sequencing errors. 
 
 ```python
 from AmpliconPE import BarcodeSet
