@@ -64,7 +64,7 @@ Iter = IterPairedFASTQ('forward_file.fastq.gz', 'reverse_file.fastq.gz', check_i
 FWD_read, REV_read = next(Iter)
 ```
 Index-Hopping dramatically undermines the power of barcode sequencing. Be sure to (1) sequence only primer-free libraries, 
-(2) use Dual-Unique Indecies, and (3) filter Forward/Reverse index pairs that do not match. 
+(2) use Dual-Unique Indecies, and (3) filter Forward/Reverse index pairs that do not match using the _check_indecies_ keyword argument. 
 
 Barcodes are then extracted using an internal-loop that generally looks something like this: 
 
