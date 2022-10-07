@@ -72,10 +72,12 @@ Barcodes are then extracted using an internal-loop that generally looks somethin
   random_barcode = master_read.extract_random_barcode()
   if 'N' in random_barcode or random_barcode == 'Length Mismatch':
     continue
-
-  barcode_pileups[sgID, random_barcode] += 1
 ```
 
 In short, `MasterRead` internally-stores the reference alignment to both the forward and reverse read. Its methods process 
 both reads in tandem. Reads are kept if they align to the reference read well and if the barcodes between the forward and revese reads match. 
 Single nucleotide differences between reads are replaced with an 'N', when an InDel difference generally return a 'Length Mismatch' string. 
+
+Barcode pileups are then tallied and processed using downstream software. You may want to use a barcode clusterer, e.g. Shepard, to de-noise
+random barcodes; however, PE sequencing generally resolves most reccurrent-read errors. The function `AmpliconPE.identify_neighbors` can clean-up
+simple recurrent read errors. 
