@@ -16,8 +16,8 @@ addressing biases and contaminations in barcoding project. However, PEAR works f
 
 ## Usage
 
-AmpliconPE is a highly-extensible python library packaged with convient command-line scripts to 
-process common amplicon constructs (e.g. TuBa-seq, CLONtracer, Brunello/Brie CRISPRko libraries). 
+AmpliconPE is an extensible python library. We provide command-line scripts to process common 
+amplicon constructs (e.g. TuBa-seq, CLONtracer, Brunello/Brie CRISPRko libraries). 
 
 Usage is built around a `MasterRead` class, which aligns Paired-End (PE) FASTQ reads to a reference
 sequence
