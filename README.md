@@ -72,6 +72,8 @@ Barcodes are then extracted using an internal-loop that generally looks somethin
   random_barcode = master_read.extract_random_barcode()
   if 'N' in random_barcode or random_barcode == 'Length Mismatch':
     continue
+
+  barcode_pileups[sgID, random_barcode] += 1
 ```
 
 In short, `MasterRead` internally-stores the reference alignment to both the forward and reverse read. Its methods process 
