@@ -80,7 +80,8 @@ Barcodes are then extracted using an internal-loop that generally looks somethin
     continue
 ```
 
-In short, `MasterRead` internally-stores the reference alignment to both the forward and reverse read. Its methods process 
+In short, `MasterRead` internally-stores the reference alignment to both the forward and reverse read, as sequence alignment is the performance-
+limiting step (implemented as embeded C code). . Its methods process 
 both reads in tandem. Reads are kept if they align to the reference read well and if the barcodes between the forward and revese reads match. 
 Single nucleotide differences between reads are replaced with an 'N', when an InDel difference generally return a 'Length Mismatch' string. 
 
