@@ -76,14 +76,13 @@ Barcodes are then extracted using an internal-loop that generally looks somethin
     continue
 ```
 
-In short, `MasterRead` internally-stores the reference alignment to both the forward and reverse read when you call the `align` method - this 
-alignment is the performance-limiting step and implemented using [SSW Library][3]. Its methods process 
-both reads in tandem. Reads are kept if they align to the reference read well and if the barcodes between the forward and revese reads match. 
-Single nucleotide differences between reads are replaced with an 'N', when an InDel difference generally return a 'Length Mismatch' string. 
+In short, `MasterRead` internally-stores the reference alignment to both the forward and reverse read when you call the `align` method--- alignment 
+is the performance-limiting step and implemented using [SSW Library][3]. Single nucleotide differences between the forward and reverse barcodes 
+are replaced with an 'N', and an InDel difference returns the string 'Length Mismatch'. 
 
-Barcode pileups are then tallied and processed using downstream software. You may want to use a barcode clusterer, e.g. Shepard, to de-noise
-random barcodes; however, PE sequencing generally resolves most reccurrent-read errors. The function `AmpliconPE.identify_neighbors` cleans-up
-simple recurrent read errors. 
+Generally, reads are kept if they match the reference read well and if forward and reverse barcodes match. Barcode pileups are then tallied and 
+processed using downstream software. You may want to use a barcode clusterer, e.g. Shepard, to de-noise random barcodes; however, PE sequencing 
+generally resolves most reccurrent-read errors. The function `AmpliconPE.identify_neighbors` cleans-up simple recurrent read errors. 
 
 
 [1]: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3933873/ "Zhang J, Kobert K, Flouri T, Stamatakis A. PEAR: a fast and accurate Illumina Paired-End reAd mergeR. Bioinformatics. 2014 Mar 1;30(5):614-20. doi: 10.1093/bioinformatics/btt593. Epub 2013 Oct 18. PMID: 24142950; PMCID: PMC3933873."
