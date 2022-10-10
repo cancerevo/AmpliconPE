@@ -3,7 +3,7 @@ Extracts DNA barcodes from Paired-End (PE) amplicon sequencing using Smith Water
 
 ## Why use AmpliconPE for your barcoding project?
 
-From [Johnson et al 2022][0]:
+From [Johnson et al 2022][1]:
 > Extracting barcodes from the sequencing reads may appear as a trivial problem at first glance, given that the structure of the read is known by design. 
 > However, the challenge is that not all reads may have identical structure...
 
@@ -14,8 +14,8 @@ From [Johnson et al 2022][0]:
 ## Why _not_ use a RegEx expression?
 
 Fuzzy RegEx libraries use sequence aligners, which _could_ mimic our functionality; however,
-this package is built around years of expreience addressing biases and contaminations in barcoding project. 
-Also, please consider merging your forward and reverse reads using [PEAR][1] before applying a RegEx expression. 
+this package is built around years of expreience addressing biases and contaminations in barcoding project...
+and is _designed_ for FASTQ sequence analysis. 
 
 ## Usage
 
@@ -87,10 +87,10 @@ Generally, reads are kept if they match the reference read well and if forward a
 processed using downstream software. You may want to use a barcode clusterer, e.g. Shepard, to de-noise random barcodes; however, PE sequencing 
 generally resolves most reccurrent-read errors. The function `AmpliconPE.identify_neighbors` cleans-up simple recurrent read errors. 
 
-[0]: https://ecoevorxiv.org/t58xw/ "Johnson, M. S., Venkataram, S., & Kryazhimskiy, S. (2022, September 28). Best practices in designing, sequencing and identifying random DNA barcodes."
-
-[1]: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3933873/ "Zhang J, Kobert K, Flouri T, Stamatakis A. PEAR: a fast and accurate Illumina Paired-End reAd mergeR. Bioinformatics. 2014 Mar 1;30(5):614-20. doi: 10.1093/bioinformatics/btt593. Epub 2013 Oct 18. PMID: 24142950; PMCID: PMC3933873."
+[1]: https://ecoevorxiv.org/t58xw/ "Johnson, M. S., Venkataram, S., & Kryazhimskiy, S. (2022, September 28). Best practices in designing, sequencing and identifying random DNA barcodes."
 
 [2]: https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-018-2262-7 "Somervuo, P., Koskinen, P., Mei, P. et al. BARCOSEL: a tool for selecting an optimal barcode set for high-throughput sequencing. BMC Bioinformatics 19, 257 (2018)."
 
 [3]: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0082138 "Zhao, Mengyao, et al. SSW library: an SIMD Smith-Waterman C/C++ library for use in genomic applications. PloS one 8.12 (2013): e82138."
+
+[4]: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3933873/ "Zhang J, Kobert K, Flouri T, Stamatakis A. PEAR: a fast and accurate Illumina Paired-End reAd mergeR. Bioinformatics. 2014 Mar 1;30(5):614-20. doi: 10.1093/bioinformatics/btt593. Epub 2013 Oct 18. PMID: 24142950; PMCID: PMC3933873."
