@@ -31,7 +31,7 @@ tuba_seq_reference_seq = 'GACCCGGA'            +    # 5' flanking sequence of do
                        
 master_read = MasterRead(tuba_seq_reference_seq)
 ```
-MasterRead automatically extracts barcode locations...
+MasterRead automatically extracts barcode start and end locations...
 ```python
 print(master_read.known_barcode)
 > slice(8, 16, None)
