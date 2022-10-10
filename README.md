@@ -12,14 +12,14 @@ Extracts DNA barcodes from Paired-End (PE) amplicon sequencing using Smith Water
 
 Fuzzy RegEx libraries use sequence aligners, so you _could_ mimic our functionality; however,
 this package is built around years of expreience addressing biases and contaminations in barcoding project. 
+Please use [PEAR][1] before diving into your FASTQ files. 
 
 ## Usage
 
 AmpliconPE is an extensible python library. We provide command-line scripts to process common 
 amplicon constructs (e.g. TuBa-seq, CLONtracer, Brunello/Brie CRISPRko libraries). 
 
-Usage is built around a `MasterRead` class, which aligns PE FASTQ reads to a reference
-sequence
+Usage is built around a `MasterRead` class, which aligns PE reads to a reference sequence:
 
 ```python
 
@@ -32,15 +32,13 @@ tuba_seq_reference_seq = 'GACCCGGA'            +    # 5' flanking sequence of do
                          'ATGCCCAA'
                        
 master_read = MasterRead(tuba_seq_reference_seq)
-print(vars(master_read))
-# {'sequence': '', 
-# 'max_score': XX, 
-# 'rc_sequence': 
-# 'SW_kwargs': {}, 
-# 'known_barcode':True, 
-# 'random_barcode':True, 
-# 'known_slice':slice(8, 16, None),
-# 'random_slice':slice(18,37))}
+```
+MasterRead automatically extracts barcode locations...
+```python
+print(master_read.known_barcode)
+> slice(8, 16, None)
+print(master_read.random_barcode)
+> slice(18, 37 None)
 ```
 You can map known barcodes to labels using `BarcodeSet`, a sub-class of `dict` that tolerates 
 mismatches when assigning labels. Use [BARCOSEL](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-018-2262-7)
@@ -87,3 +85,7 @@ Single nucleotide differences between reads are replaced with an 'N', when an In
 Barcode pileups are then tallied and processed using downstream software. You may want to use a barcode clusterer, e.g. Shepard, to de-noise
 random barcodes; however, PE sequencing generally resolves most reccurrent-read errors. The function `AmpliconPE.identify_neighbors` cleans-up
 simple recurrent read errors. 
+
+# References
+
+[1]: Zhang J, Kobert K, Flouri T, Stamatakis A. PEAR: a fast and accurate Illumina Paired-End reAd mergeR. Bioinformatics. 2014 Mar 1;30(5):614-20. doi: 10.1093/bioinformatics/btt593. Epub 2013 Oct 18. PMID: 24142950; PMCID: PMC3933873.
