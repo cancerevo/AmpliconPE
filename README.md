@@ -70,7 +70,7 @@ Barcodes are then extracted using an internal-loop that generally looks somethin
   if score < 0.8 * master_read.max_score:
     continue  # poor alignment
 
-  target = known_barcodes.get(master_read.extract_known_barcode(), 'Unknown sgID')
+  target = known_barcodes.get(master_read.extract_known_barcode(), 'Unknown Target')
   random_barcode = master_read.extract_random_barcode()
   if 'N' in random_barcode or random_barcode == 'Length Mismatch':
     continue
