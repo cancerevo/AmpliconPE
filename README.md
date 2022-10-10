@@ -1,25 +1,24 @@
 # AmpliconPE
-Extracts DNA barcodes from Paired-End Amplicon Sequencing using Smith Waterman alignments
+Extracts DNA barcodes from Paired-End (PE) amplicon sequencing using Smith Waterman alignments
 
 ## Why use AmpliconPE for your barcoding project?
 
-* Paried-end (redundant) seqencing of amplicons is cheaper and more accurate
+* PE (redundant) seqencing of amplicons is cheaper and more accurate
 * Homology-based alignment to a reference read is the most robust way to correct all read anomalies 
 * AmpliconPE extracts both known barcodes (barcode sets) and random barcodes intelligently
 * Its fast & simple
 
-## Why _not_ use PEAR?
+## Why _not_ use a RegEx expression?
 
-Because aligning the forward and reverse reads to a reference sequence, rather than each other,
-is faster and less error-prone. Also, our functionality is built around years of expreience 
-addressing biases and contaminations in barcoding project. However, PEAR works fine. 
+Fuzzy RegEx libraries use sequence aligners, so you _could_ mimic our functionality; however,
+this package is built around years of expreience addressing biases and contaminations in barcoding project. 
 
 ## Usage
 
 AmpliconPE is an extensible python library. We provide command-line scripts to process common 
 amplicon constructs (e.g. TuBa-seq, CLONtracer, Brunello/Brie CRISPRko libraries). 
 
-Usage is built around a `MasterRead` class, which aligns Paired-End (PE) FASTQ reads to a reference
+Usage is built around a `MasterRead` class, which aligns PE FASTQ reads to a reference
 sequence
 
 ```python
