@@ -47,8 +47,8 @@ mismatches when assigning labels. Use [BARCOSEL][2] to generate barcode sets tha
 from AmpliconPE import BarcodeSet
 import pandas as pd
 
-sgIDs = pd.read_csv('sgID_info.csv').set_index("Targeted Gene")['barcode']
-known_barcodes = BarcodeSet(sgIDs, n_mismatches=1, indel=1)
+taget_genes = pd.read_csv('sgRNA_info.csv').set_index("Targeted Gene")['barcode']
+known_barcodes = BarcodeSet(target_genes, n_mismatches=1, indel=1)
 ```
 Reads are then processed using the `IterPairedFASTQ` iterator:
 
@@ -70,7 +70,7 @@ Barcodes are then extracted using an internal-loop that generally looks somethin
   if score < 0.8 * master_read.max_score:
     continue  # poor alignment
 
-  sgID = known_barcodes.get(master_read.extract_known_barcode(), 'Unknown sgID')
+  target = known_barcodes.get(master_read.extract_known_barcode(), 'Unknown sgID')
   random_barcode = master_read.extract_random_barcode()
   if 'N' in random_barcode or random_barcode == 'Length Mismatch':
     continue
