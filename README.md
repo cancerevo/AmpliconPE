@@ -3,6 +3,10 @@ Extracts DNA barcodes from Paired-End (PE) amplicon sequencing using Smith Water
 
 ## Why use AmpliconPE for your barcoding project?
 
+From [Johnson et al 2022][0]:
+> Extracting barcodes from the sequencing reads may appear as a trivial problem at first glance, given that the structure of the read is known by design. 
+> However, the challenge is that not all reads may have identical structure...
+
 * PE (redundant) seqencing is cheaper (!) than Single-End sequencing and eliminates 99% of errors
 * Homology-based alignment to a reference read is the most robust way to correct read anomalies 
 * Its _SIMD_-fast, simple & _ultra_-extensible library.
@@ -83,6 +87,7 @@ Generally, reads are kept if they match the reference read well and if forward a
 processed using downstream software. You may want to use a barcode clusterer, e.g. Shepard, to de-noise random barcodes; however, PE sequencing 
 generally resolves most reccurrent-read errors. The function `AmpliconPE.identify_neighbors` cleans-up simple recurrent read errors. 
 
+[0]: https://ecoevorxiv.org/t58xw/ "Johnson, M. S., Venkataram, S., & Kryazhimskiy, S. (2022, September 28). Best practices in designing, sequencing and identifying random DNA barcodes."
 
 [1]: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3933873/ "Zhang J, Kobert K, Flouri T, Stamatakis A. PEAR: a fast and accurate Illumina Paired-End reAd mergeR. Bioinformatics. 2014 Mar 1;30(5):614-20. doi: 10.1093/bioinformatics/btt593. Epub 2013 Oct 18. PMID: 24142950; PMCID: PMC3933873."
 
