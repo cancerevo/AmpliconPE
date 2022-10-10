@@ -88,4 +88,4 @@ simple recurrent read errors.
 
 # References
 
-[1]: Zhang J, Kobert K, Flouri T, Stamatakis A. PEAR: a fast and accurate Illumina Paired-End reAd mergeR. Bioinformatics. 2014 Mar 1;30(5):614-20. doi: 10.1093/bioinformatics/btt593. Epub 2013 Oct 18. PMID: 24142950; PMCID: PMC3933873.
+[1]: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3933873/ "Zhang J, Kobert K, Flouri T, Stamatakis A. PEAR: a fast and accurate Illumina Paired-End reAd mergeR. Bioinformatics. 2014 Mar 1;30(5):614-20. doi: 10.1093/bioinformatics/btt593. Epub 2013 Oct 18. PMID: 24142950; PMCID: PMC3933873."
