@@ -88,6 +88,6 @@ simple recurrent read errors.
 
 [1]: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3933873/ "Zhang J, Kobert K, Flouri T, Stamatakis A. PEAR: a fast and accurate Illumina Paired-End reAd mergeR. Bioinformatics. 2014 Mar 1;30(5):614-20. doi: 10.1093/bioinformatics/btt593. Epub 2013 Oct 18. PMID: 24142950; PMCID: PMC3933873."
 
-[2]: https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-018-2262-7 "Somervuo, P., Koskinen, P., Mei, P. et al. BARCOSEL: a tool for selecting an optimal barcode set for high-throughput sequencing. BMC Bioinformatics 19, 257 (2018). https://doi.org/10.1186/s12859-018-2262-7"
+[2]: https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-018-2262-7 "Somervuo, P., Koskinen, P., Mei, P. et al. BARCOSEL: a tool for selecting an optimal barcode set for high-throughput sequencing. BMC Bioinformatics 19, 257 (2018)."
 
 [3]: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0082138 "Zhao, Mengyao, et al. SSW library: an SIMD Smith-Waterman C/C++ library for use in genomic applications. PloS one 8.12 (2013): e82138."
