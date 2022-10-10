@@ -12,7 +12,7 @@ Extracts DNA barcodes from Paired-End (PE) amplicon sequencing using Smith Water
 
 Fuzzy RegEx libraries use sequence aligners, so you _could_ mimic our functionality; however,
 this package is built around years of expreience addressing biases and contaminations in barcoding project. 
-Please use [PEAR][1] before diving into your FASTQ files. 
+Also, please consider merging your Forward & Reverse reads using [PEAR][1] before applying a RegEx expression. 
 
 ## Usage
 
