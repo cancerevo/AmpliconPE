@@ -27,7 +27,7 @@ tuba_seq_reference_seq = 'GACCCGGA'            +    # 5' flanking sequence of do
                          '********'            +    # Known barcode - specified by '*'
                          'AA'                  +    # spacer
                          'NNNNNTTNNNNNAANNNNN' +    # Random Barcode w/ spacers - specified by 'N'
-                         'ATGCCCAA'
+                         'ATGCCCAA'                 # 3' flank
                        
 master_read = MasterRead(tuba_seq_reference_seq)
 ```
