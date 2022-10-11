@@ -80,7 +80,7 @@ Barcodes are then extracted using an internal-loop that generally looks somethin
 
 In short, `MasterRead` internally-stores the reference alignment to both the forward and reverse read when you call the `align` method--- alignment 
 is the performance-limiting step and implemented using [SSW Library][3]. Single nucleotide differences between the forward and reverse barcodes 
-are replaced with `'N'`, and an InDel difference between barcodes returns `'Length Mismatch'`. 
+are replaced with `'N'`, while InDel differences between barcodes returns `'Length Mismatch'`. 
 
 Generally, reads are kept if they match the reference read well and if forward and reverse barcodes match. Barcode pileups are then tallied and 
 processed using downstream software. You may want to use a barcode clusterer, e.g. Shepard, to de-noise random barcodes; however, PE sequencing 
