@@ -20,7 +20,7 @@ this package is built around years of expreience addressing biases and contamina
 
 We provide command-line scripts to process common amplicon constructs (e.g. TuBa-seq, CLONtracer, Brunello/Brie CRISPRko libraries). 
 
-Usage is built around a `MasterRead` class, which aligns PE reads to a reference sequence:
+Usage in each is built around a `MasterRead` class, which aligns PE reads to a reference sequence:
 
 ```python
 
