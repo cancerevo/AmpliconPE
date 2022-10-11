@@ -11,7 +11,7 @@ From [Johnson et al 2022][1]:
 * Homology-based alignment to a reference read is the most robust way to correct read anomalies 
 * Its a _SIMD_-fast, simple & _highly_ extensible library.
 
-## Why _not_ use a RegEx expression?
+## Why not use a RegEx expression?
 
 Fuzzy RegEx libraries use sequence aligners, which _could_ mimic our functionality; however,
 this package is built around years of expreience addressing biases and contaminations in barcoding project...
