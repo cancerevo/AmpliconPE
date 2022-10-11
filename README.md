@@ -45,10 +45,10 @@ You can map known barcodes to labels using `BarcodeSet`, a sub-class of `dict` t
 mismatches when assigning labels. Use [BARCOSEL][2] to generate barcode sets that are robust to sequencing errors. 
 
 ```python
-from AmpliconPE import BarcodeSet
 import pandas as pd
-
 taget_genes = pd.read_csv('sgRNA_info.csv').set_index("Targeted Gene")['barcode']
+
+from AmpliconPE import BarcodeSet
 known_barcodes = BarcodeSet(target_genes, n_mismatches=1, indel=1)
 ```
 Reads are then processed using the `IterPairedFASTQ` iterator:
