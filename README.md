@@ -1,7 +1,7 @@
 # AmpliconPE
 Extracts DNA barcodes from Paired-End (PE) amplicon sequencing using Smith Waterman alignments
 
-## Why use AmpliconPE for your barcoding project?
+## Why use AmpliconPE for barcode extraction?
 
 From [Johnson et al 2022][1]:
 > Extracting barcodes from the sequencing reads may appear as a trivial problem at first glance, given that the structure of the read is known by design. 
