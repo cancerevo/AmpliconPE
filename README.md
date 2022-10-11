@@ -51,7 +51,7 @@ taget_genes = pd.read_csv('sgRNA_info.csv').set_index("Targeted Gene")['barcode'
 from AmpliconPE import BarcodeSet
 known_barcodes = BarcodeSet(target_genes, n_mismatches=1, indel=1)
 ```
-Reads are then processed using the `PairedFASTQIter` iterator:
+Reads are then processed using the `ReadPairedFASTQ` iterator:
 
 ```python
 from AmpliconPE import ReadPairedFASTQ
