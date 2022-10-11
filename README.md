@@ -13,7 +13,7 @@ From [Johnson et al 2022][1]:
 
 ## Why not use a RegEx expression?
 
-Fuzzy RegEx libraries use sequence aligners, which _could_ mimic our functionality; however,
+Fuzzy RegEx libraries use sequence aligners, which therefore could mimic our functionality; however,
 this package is built around years of expreience addressing biases and contaminations in barcoding project...
 and is _designed_ for FASTQ sequence analysis. 
 
