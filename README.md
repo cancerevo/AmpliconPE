@@ -1,5 +1,5 @@
 # AmpliconPE
-Extracts DNA barcodes from Paired-End (PE) amplicon sequencing using Smith Waterman alignments
+Extracts DNA barcodes from Paired-End (PE) amplicon sequencing using a [Smith Waterman alignment][3]
 
 ## Why use AmpliconPE for barcode extraction?
 
