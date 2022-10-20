@@ -46,7 +46,7 @@ mismatches when assigning labels. Use [BARCOSEL][2] to generate barcode sets tha
 
 ```python
 import pandas as pd
-taget_genes = pd.read_csv('sgRNA_info.csv').set_index("Targeted Gene")['barcode']
+target_genes = pd.read_csv('sgRNA_info.csv').set_index("Targeted Gene")['barcode']
 
 from AmpliconPE import BarcodeSet
 known_barcodes = BarcodeSet(target_genes, n_mismatches=1, indel=1)
