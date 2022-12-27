@@ -68,12 +68,14 @@ Barcodes are then extracted using an internal-loop that generally looks somethin
 
 ```python
 
-  score = master_read.align(FWD_read, REV_read)
+  score = master_read.score(FWD_read, REV_read)
   if score < 0.8 * master_read.max_score:
     continue  # poor alignment
+  
+  alignment = master_read.align(FWD_read, REV_read)
 
-  target = known_barcodes.get(master_read.extract_known_barcode(), 'Unknown Target')
-  random_barcode = master_read.extract_random_barcode()
+  target = known_barcodes.get(alignment.extract_known_barcode(), 'Unknown Target')
+  random_barcode = alignment.extract_random_barcode()
   if 'N' in random_barcode or random_barcode == 'Length Mismatch':
     continue
 ```
