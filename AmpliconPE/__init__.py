@@ -74,6 +74,34 @@ class pairedFASTQiter(object):
                 return fwd_dna, rev_dna
         self.filtered_reads += 1
 
+# See https://stackoverflow.com/questions/11679855/introducing-mutations-in-a-dna-string-in-python
+from itertools import combinations,product
+def mismatcher(word, i = 2):
+    for d in range(i+1):
+        for locs in combinations(range(len(word)), d):
+            thisWord = [[char] for char in word]
+            for loc in locs:
+                origChar = word[loc]
+                thisWord[loc] = [l for l in "ACGTN" if l != origChar]
+            for poss in product(*thisWord):
+                yield "".join(poss)    
+
+# See https://realpython.com/inherit-python-dict/
+class BarcodeSet(dict):
+    def __setitem__(self, barcode, target):
+        for mismatch in mismatcher(barcode, self.n_mismatches):
+            if mismatch in self:
+                raise ValueError(f"{mismatch}, a mismatch of {barcode}, is already in BarcodeSet.")
+            
+            super().__setitem__(mismatch, target)
+        super().__setitem__(barcode, target)
+
+    def __init__(self, n_mismatches=1):
+        self.n_mismatches = n_mismatches
+
+    def update(self, other):
+        for k, v in other.items(): 
+            self[k] = v
 
 class MasterRead(str):
    
