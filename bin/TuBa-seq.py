@@ -87,7 +87,7 @@ args = parser.parse_args()
 
 Log = logPrint(args)
 if args.parallel:
-    from tuba.pmap import pmap as map
+    from pmap import pmap as map
 
 
 if args.forward_reads.is_dir():
