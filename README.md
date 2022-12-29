@@ -78,7 +78,7 @@ Barcodes are then extracted using an internal-loop that generally looks somethin
     continue
   
   known_barcode = barcode[:8]
-  sgRNA_target = known_barcodes.get(alignment.extract_known_barcode(), 'Unknown Target')
+  sgRNA_target = known_barcodes.get(known_barcode, 'Unknown Target')
   
   random_barcode = barcode[8:]
   if 'N' in random_barcode:
