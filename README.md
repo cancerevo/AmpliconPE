@@ -42,10 +42,10 @@ print(master_read.barcode_start, master_read.barcode_stop)
 > (8, 37)
 ```
 
-Reads are then processed using `ReadPairedFASTQ`:
+Reads are then processed using `pairedFASTQiter`:
 
 ```python
-from AmpliconPE import ReadPairedFASTQ
+from AmpliconPE import pairedFASTQiter
 
 Iter = pairedFASTQiter('forward_file.fastq.gz', 'reverse_file.fastq.gz', check_indecies=True)
 
