@@ -1,3 +1,5 @@
+[![Lint](https://github.com/cancerevo/tuba-seq/actions/workflows/black.yml/badge.svg)](https://github.com/cancerevo/tuba-seq/actions/workflows/black.yml)
+
 # AmpliconPE
 Extracts DNA barcodes from Paired-End (PE) amplicon sequencing using a [Smith Waterman alignment][3]
 
