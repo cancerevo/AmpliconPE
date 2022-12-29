@@ -45,7 +45,7 @@ Reads are then processed using `ReadPairedFASTQ`:
 ```python
 from AmpliconPE import ReadPairedFASTQ
 
-Iter = ReadPairedFASTQ('forward_file.fastq.gz', 'reverse_file.fastq.gz', check_indecies=True)
+Iter = pairedFASTQiter('forward_file.fastq.gz', 'reverse_file.fastq.gz', check_indecies=True)
 
 FWD_read, REV_read = next(Iter)
 ```
