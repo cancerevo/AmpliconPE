@@ -12,9 +12,14 @@ full_amplicon = "".join(
         "........",  # sgID
         "AA.....TT.....AA.....",  # random barcode
         "ATGCCCAAGAAGAAGAGGAAGGTGTCCAATTTACTGACCGTACACCAAAATTTGCCTGCATTACCGGTCGATGCAACGAGTGATGAGGTTCGCAAGAACCT",
-    )   # aft flank
-) 
-default_master_read = full_amplicon[full_amplicon.find('.') - FLANK_LENGTH:full_amplicon.rindex('.')+1 + FLANK_LENGTH].replace(".", "N")
+    )  # aft flank
+)
+default_master_read = full_amplicon[
+    full_amplicon.find(".")
+    - FLANK_LENGTH : full_amplicon.rindex(".")
+    + 1
+    + FLANK_LENGTH
+].replace(".", "N")
 
 parser = argparse.ArgumentParser(
     description="""Determines tumor number from Paired-End reads.""",
@@ -102,14 +107,22 @@ else:
 sg_info = pd.read_csv(args.sgRNA_file, converters={"ID": str.upper})
 sgID_length = int(sg_info["ID"].str.len().median())
 
-sgID_map = BarcodeSet(sg_info.set_index("ID")["target"], n_mismatches=args.mismatches_tolerated)
+sgID_map = BarcodeSet(
+    sg_info.set_index("ID")["target"], n_mismatches=args.mismatches_tolerated
+)
 
 master_read = MasterRead(args.master_read)
+
+
 def derep_barcodes(FASTQiter):
     import numpy as np
     from collections import Counter
+
     pileups = Counter()
-    scores = pd.DataFrame(np.zeros((master_read.max_score+1, 2), dtype=np.int64), index=pd.Index(np.linspace(0,1,num=master_read.max_score+1), name='Score'))
+    scores = pd.DataFrame(
+        np.zeros((master_read.max_score + 1, 2), dtype=np.int64),
+        index=pd.Index(np.linspace(0, 1, num=master_read.max_score + 1), name="Score"),
+    )
     min_int_score = int(args.min_align_score * master_read.max_score)
 
     for fwd_dna, rev_dna in FASTQiter:
@@ -117,27 +130,31 @@ def derep_barcodes(FASTQiter):
         score = master_read.score(fwd_dna, rev_dna)
         scores[score] += 1
         if score <= min_int_score:
-            continue  
+            continue
 
         barcode = master_read.extract_barcode(fwd_dna, rev_dna)
-        if barcode == 'Length Mismatch':
+        if barcode == "Length Mismatch":
             continue
-           
+
         known_barcode = barcode[:sgID_length]
-        sgRNA_target = sgID_map.get(known_barcode, 'Unknown Target')
+        sgRNA_target = sgID_map.get(known_barcode, "Unknown Target")
         random_barcode = barcode[sgID_length:]
-        
+
         pileups[(sgRNA_target, random_barcode)] += 1
-    
+
     poor_alignment = scores[:min_int_score].sum()
     lost = {
-        'Poor Alignment' : poor_alignment,
-        'Length Mismatch': pileups.sum() - poor_alignment,
-        'Index Mismatch' : FASTQiter.index_mismatch
+        "Poor Alignment": poor_alignment,
+        "Length Mismatch": pileups.sum() - poor_alignment,
+        "Index Mismatch": FASTQiter.index_mismatch,
     }
     return pileups, lost, scores
 
-outputs = map(derep_barcodes, [pairedFASTQiter(*file_pair) for file_pair in zip(forward_files, reverse_files)])
+
+outputs = map(
+    derep_barcodes,
+    [pairedFASTQiter(*file_pair) for file_pair in zip(forward_files, reverse_files)],
+)
 sample_names = [f.name.partition(".")[0] for f in forward_files]
 
 
@@ -161,7 +178,7 @@ output_dfs = [
 
 store = pd.HDFStore(args.output, "w", complevel=9)
 for name, df in zip(["pileups", "lost", "scores"], output_dfs):
-    if name == 'pileups':
+    if name == "pileups":
         df.index.names = "Sample", "target", "barcode"
     store.put(name, df)
 store.close()

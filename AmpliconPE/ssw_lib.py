@@ -7,6 +7,7 @@ By Yongan Zhao (March 2016)
 
 import ctypes as ct
 
+
 class CAlignRes(ct.Structure):
     """
     @typedef	structure of the alignment result
@@ -172,6 +173,7 @@ class CSsw(object):
 # Beginning of Christopher McFarland's class
 
 import numpy as np
+
 ssw = CSsw()
 
 o_N = ord(b"N")
@@ -206,9 +208,8 @@ class SW(object):
     def _align(self, char_query, char_reference):
         """Performs the underling alignment
 
-The return alignment object must be destroyed, so user methods access this 
-base method in a memory-informed manner. 
-"""
+        The return alignment object must be destroyed, so user methods access this
+        base method in a memory-informed manner."""
         nQuery = self.nEle2Int[list(char_query)].ctypes.data_as(ct.POINTER(ct.c_int8))
         self.qProfile = ssw.ssw_init(
             nQuery, ct.c_int32(len(char_query)), self.mat, len(self.lEle), 2
@@ -275,10 +276,9 @@ base method in a memory-informed manner.
                 nROff += n
             else:
                 raise ValueError("Invalid Cigar Annotation ({:})".format(c))
-        
+
         ssw.align_destroy(alignment)
         return b"".join(sQ), b"".join(sR)
-
 
     def extract_barcode(self, query, reference, barcode_start, barcode_stop):
         sCigarInfo = b"MIDNSHP=X"
@@ -287,9 +287,9 @@ base method in a memory-informed manner.
 
         dBeg = contents.nQryBeg - contents.nRefBeg
         truncation = min(contents.nQryBeg, contents.nRefBeg)
-    
+
         dRef_pre_start = 0
-        
+
         ref_start_remaining = barcode_start - dBeg - truncation
         idx = 0
         while ref_start_remaining > 0:
@@ -297,7 +297,7 @@ base method in a memory-informed manner.
             n = x >> 4
             m = x & 15
             c = 77 if m > 8 else sCigarInfo[m]
-            if c == 77:  #"M" = match
+            if c == 77:  # "M" = match
                 ref_start_remaining -= n
             elif c == 73:  #'I' = Ins
                 dRef_pre_start += n
@@ -305,14 +305,14 @@ base method in a memory-informed manner.
                 ref_start_remaining -= n
             idx += 1
 
-        ref_barcode_remaining = barcode_stop + ref_start_remaining - barcode_start 
+        ref_barcode_remaining = barcode_stop + ref_start_remaining - barcode_start
         dRef_barcode = 0
         while ref_barcode_remaining > 0 and idx < contents.nCigarLen:
             x = contents.sCigar[idx]
             n = x >> 4
             m = x & 15
             c = 77 if m > 8 else sCigarInfo[m]
-            if c == 77:  #"M" = match
+            if c == 77:  # "M" = match
                 ref_barcode_remaining -= n
             elif c == 73:  #'I' = Ins
                 dRef_barcode += n
@@ -321,11 +321,17 @@ base method in a memory-informed manner.
                 dRef_barcode -= n
             idx += 1
 
-        barcode = query[barcode_start + dBeg + dRef_pre_start: barcode_stop + dBeg + dRef_barcode + dRef_pre_start]
-        
+        barcode = query[
+            barcode_start
+            + dBeg
+            + dRef_pre_start : barcode_stop
+            + dBeg
+            + dRef_barcode
+            + dRef_pre_start
+        ]
+
         ssw.align_destroy(alignment)
         return barcode
-
 
     def fill_Ns(self, char_query, char_reference):
         query_align, ref_align = self._char_align(char_query, char_reference)
@@ -345,5 +351,3 @@ base method in a memory-informed manner.
         ssw.init_destroy(self.qProfile)
         ssw.align_destroy(self.res)
         return out
-
-
