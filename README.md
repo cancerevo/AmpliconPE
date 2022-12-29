@@ -47,7 +47,7 @@ from AmpliconPE import ReadPairedFASTQ
 
 Iter = pairedFASTQiter('forward_file.fastq.gz', 'reverse_file.fastq.gz', check_indecies=True)
 
-FWD_read, REV_read = next(Iter)
+fwd_read, rev_read = next(Iter)
 ```
 
 Index-Hopping dramatically undermines the power of barcode sequencing. For this reason, we recommend 
@@ -69,11 +69,11 @@ Barcodes are then extracted using an internal-loop that generally looks somethin
 
 ```python
 
-  score = master_read.score(FWD_read, REV_read)
+  score = master_read.score(fwd_read, rev_read)
   if score < 0.8 * master_read.max_score:
     continue  # poor alignment
   
-  barcode = master_read.extract_barcode()
+  barcode = master_read.extract_barcode(fwd_read, rev_read)
   if barcode == 'Length Mismatch':
     continue
   
