@@ -105,9 +105,9 @@ sgID_length = int(sg_info["ID"].str.len().median())
 sgID_map = BarcodeSet(sg_info.set_index("ID")["target"], n_mismatches=args.mismatches_tolerated)
 
 master_read = MasterRead(args.master_read)
-import numpy as np
-from collections import Counter
 def derep_barcodes(FASTQiter):
+    import numpy as np
+    from collections import Counter
     pileups = Counter()
     scores = pd.DataFrame(np.zeros((master_read.max_score+1, 2), dtype=np.int64), index=pd.Index(np.linspace(0,1,num=master_read.max_score+1), name='Score'))
     min_int_score = int(args.min_align_score * master_read.max_score)
@@ -119,7 +119,7 @@ def derep_barcodes(FASTQiter):
         if score <= min_int_score:
             continue  
 
-        barcode = master_read.extract_barcode()
+        barcode = master_read.extract_barcode(fwd_dna, rev_dna)
         if barcode == 'Length Mismatch':
             continue
            
@@ -153,15 +153,15 @@ output_dfs = [
     )
     for output_set in zip(*list(outputs))
 ]
-pileups, lost, scores = output_dfs
 
-pileups.index.names = "Sample", "target", "barcode"
 
 ###############################################################################
 # Output
 ###############################################################################
 
 store = pd.HDFStore(args.output, "w", complevel=9)
-for name in ["pileups", "lost", "scores"]:
-    store.put(name, eval(name))
+for name, df in zip(["pileups", "lost", "scores"], output_dfs):
+    if name == 'pileups':
+        df.index.names = "Sample", "target", "barcode"
+    store.put(name, df)
 store.close()
