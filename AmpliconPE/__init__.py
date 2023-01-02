@@ -96,18 +96,41 @@ class BarcodeSet(dict):
             super().__setitem__(mismatch, target)
         super().__setitem__(barcode, target)
 
-    def __init__(self, n_mismatches=1):
-        self.n_mismatches = n_mismatches
-
     def update(self, other):
         for k, v in other.items(): 
             self[k] = v
+    
+    def __init__(self, *args, n_mismatches=1):
+        self.n_mismatches = n_mismatches
+        self.updatae(dict(args))
+
+
+class DoubleAlignment(object):
+    def __init__(self, fwd_align, rev_align, master_read):
+        self.fwd_align = fwd_align
+        self.rev_align = rev_align
+        self.master_read = master_read
+        
+        self.score = fwd_align.score + rev_align.score
+
+    def extract_barcode(self):
+        fwd_bc = self.fwd_align.extract_barcode(self.master_read.barcode_start, self.master_read.barcode_stop)
+        rev_bc = reverse_compliment(self.rev_align.extract_barcode(self.master_read.rc_start, self.master_read.rc_stop))
+
+        if len(fwd_bc) != len(rev_bc):
+            return "Length Mismatch"
+        return fwd_bc if fwd_bc == rev_bc else ''.join([fwd if fwd == rev else 'N' for fwd, rev in zip(fwd_bc, rev_bc)])
+
 
 class MasterRead(str):
-   
-    def score(self, FWD_read, REV_read):
-        return self.sw.score(self.seq, FWD_read) + self.sw.score(self.reverse_compliment, REV_read)
-     
+    def align(self, fwd_read, rev_read):
+        
+        return DoubleAlignment(
+            self.sw.align(fwd_read, self.seq),
+            self.sw.align(rev_read, self.reverse_compliment),
+            self)
+
+    
     def __init__(self, seq, alignment_params=ALIGNMENT_PARAMS):
         self.seq = seq
         self.alignmet_params = alignment_params
@@ -118,16 +141,8 @@ class MasterRead(str):
         self.rc_stop = self.reverse_compliment.rindex("N") + 1
 
         self.sw = SW(**self.alignment_params)
-        self.max_score = self.score(self.alignment_seq, self.reverse_compliment)
-
-    def extract_barcode(self, FWD_read, REV_read):
-        fwd_bc = self.sw.extract_barcode(FWD_read, self.seq, self.barcode_start, self.barcode_stop)
-        rev_bc = reverse_compliment(self.sw.extract_barcode(REV_read, self.reverse_compliment, self.rc_start, self.rc_stop))
-        if len(fwd_bc) != len(rev_bc):
-            return "Length Mismatch"
-        if fwd_bc == rev_bc:
-            return fwd_bc
-        return ''.join([fwd if fwd == rev else 'N' for fwd, rev in zip(fwd_bc, rev_bc)])
+        self.self_alignment = self.align(seq, self.reverse_compliment)
+        self.max_score = self.self_alignment.score
 
 
 class logPrint(object):

@@ -181,7 +181,9 @@ o_gap = ord(b"-")
 class SW(object):
     def __dealloc__(self):
         ssw.init_destroy(self.qProfile)
-        ssw.align_destroy(self.res)
+    
+    def __del__(self):
+        ssw.init_destroy(self.qProfile)
 
     def __init__(self, match=4, mismatch=2, gap_open=6, gap_extend=1):
         # init DNA score matrix
@@ -203,25 +205,25 @@ class SW(object):
         self.gap_extend = gap_extend
         self.lEle = lEle
 
-    def _align(self, char_query, char_reference):
+    def align(self, query, reference):
         """Performs the underling alignment
 
 The return alignment object must be destroyed, so user methods access this 
 base method in a memory-informed manner. 
 """
-        nQuery = self.nEle2Int[list(char_query)].ctypes.data_as(ct.POINTER(ct.c_int8))
+        nQuery = self.nEle2Int[list(query)].ctypes.data_as(ct.POINTER(ct.c_int8))
         self.qProfile = ssw.ssw_init(
-            nQuery, ct.c_int32(len(char_query)), self.mat, len(self.lEle), 2
+            nQuery, ct.c_int32(len(query)), self.mat, len(self.lEle), 2
         )
         nMaskLen = len(char_query) // 2 if len(char_query) > 30 else 15
         nFlag = 2
-        nReference = self.nEle2Int[list(char_reference)].ctypes.data_as(
+        nReference = self.nEle2Int[list(reference)].ctypes.data_as(
             ct.POINTER(ct.c_int8)
         )
         alignment = ssw.ssw_align(
             self.qProfile,
             nReference,
-            ct.c_int32(len(char_reference)),
+            ct.c_int32(len(reference)),
             self.gap_open,
             self.gap_extend,
             nFlag,
@@ -229,16 +231,19 @@ base method in a memory-informed manner.
             0,
             nMaskLen,
         )
-        ssw.init_destroy(self.qProfile)
-        return alignment
+        return Alignment(alignment, query, reference)
 
-    def score(self, query, reference):
-        alignment = self._align(query, reference)
-        score = alignment.contents.nScore
-        ssw.align_destroy(alignment)
-        return score
+class Alignment(object):
+    def __del__(self):
+        ssw.align_destroy(self)
+        
+    def __init__(self, alignment, query, reference):
+        self.score = alignment.contents.nScore
+        self.contents = alignment.contents
+        self.query = query
+        self.reference = reference
 
-    def align(self, query, reference):
+    def build_cigar(self):
         """
         build cigar string and align path based on cigar array returned by ssw_align
         @param  q   query sequence
@@ -247,15 +252,13 @@ base method in a memory-informed manner.
         @param  nRefBeg   begin position of reference sequence
         @param  lCigar   cigar array
         """
-        alignment = self._align(query, reference)
-        contents = alignment.contents
-        Cigar = contents.sCigar
+        Cigar = self.contents.sCigar
         sCigarInfo = b"MIDNSHP=X"
         sQ = []
         sR = []
-        nQOff = contents.nQryBeg
-        nROff = contents.nRefBeg
-        for idx in range(contents.nCigarLen):
+        nQOff = self.contents.nQryBeg
+        nROff = self.contents.nRefBeg
+        for idx in range(self.contents.nCigarLen):
             x = Cigar[idx]
             n = x >> 4
             m = x & 15
@@ -280,20 +283,18 @@ base method in a memory-informed manner.
         return b"".join(sQ), b"".join(sR)
 
 
-    def extract_barcode(self, query, reference, barcode_start, barcode_stop):
+    def extract_barcode(self, barcode_start, barcode_stop):
         sCigarInfo = b"MIDNSHP=X"
-        alignment = self._align(query, reference)
-        contents = alignment.contents
 
-        dBeg = contents.nQryBeg - contents.nRefBeg
-        truncation = min(contents.nQryBeg, contents.nRefBeg)
+        dBeg = self.contents.nQryBeg - self.contents.nRefBeg
+        truncation = min(self.contents.nQryBeg, self.contents.nRefBeg)
     
         dRef_pre_start = 0
         
         ref_start_remaining = barcode_start - dBeg - truncation
         idx = 0
         while ref_start_remaining > 0:
-            x = contents.sCigar[idx]
+            x = self.contents.sCigar[idx]
             n = x >> 4
             m = x & 15
             c = 77 if m > 8 else sCigarInfo[m]
@@ -308,7 +309,7 @@ base method in a memory-informed manner.
         ref_barcode_remaining = barcode_stop + ref_start_remaining - barcode_start 
         dRef_barcode = 0
         while ref_barcode_remaining > 0 and idx < contents.nCigarLen:
-            x = contents.sCigar[idx]
+            x = self.contents.sCigar[idx]
             n = x >> 4
             m = x & 15
             c = 77 if m > 8 else sCigarInfo[m]
@@ -321,29 +322,5 @@ base method in a memory-informed manner.
                 dRef_barcode -= n
             idx += 1
 
-        barcode = query[barcode_start + dBeg + dRef_pre_start: barcode_stop + dBeg + dRef_barcode + dRef_pre_start]
-        
-        ssw.align_destroy(alignment)
-        return barcode
-
-
-    def fill_Ns(self, char_query, char_reference):
-        query_align, ref_align = self._char_align(char_query, char_reference)
-        middle = bytes(
-            bytearray(
-                [
-                    q if (q != o_N or r == o_gap) else r
-                    for q, r in zip(query_align, ref_align)
-                    if q != o_gap
-                ]
-            )
-        )
-        contents = self.res.contents
-        out = (
-            char_query[: contents.nQryBeg] + middle + char_query[contents.nQryEnd + 1 :]
-        )
-        ssw.init_destroy(self.qProfile)
-        ssw.align_destroy(self.res)
-        return out
-
+        return self.query[barcode_start + dBeg + dRef_pre_start: barcode_stop + dBeg + dRef_barcode + dRef_pre_start]
 
