@@ -7,6 +7,7 @@ By Yongan Zhao (March 2016)
 
 import ctypes as ct
 
+
 class CAlignRes(ct.Structure):
     """
     @typedef	structure of the alignment result
@@ -172,6 +173,7 @@ class CSsw(object):
 # Beginning of Christopher McFarland's class
 
 import numpy as np
+
 ssw = CSsw()
 
 o_N = ord(b"N")
@@ -208,10 +210,16 @@ class SW(object):
     def align(self, query, reference):
         """Performs the underling alignment
 
+<<<<<<< HEAD
 The return alignment object must be destroyed, so user methods access this 
 base method in a memory-informed manner. 
 """
         nQuery = self.nEle2Int[list(query)].ctypes.data_as(ct.POINTER(ct.c_int8))
+=======
+        The return alignment object must be destroyed, so user methods access this
+        base method in a memory-informed manner."""
+        nQuery = self.nEle2Int[list(char_query)].ctypes.data_as(ct.POINTER(ct.c_int8))
+>>>>>>> 8d7446ce195d72789121e36bc06b1085428760c7
         self.qProfile = ssw.ssw_init(
             nQuery, ct.c_int32(len(query)), self.mat, len(self.lEle), 2
         )
@@ -278,19 +286,29 @@ class Alignment(object):
                 nROff += n
             else:
                 raise ValueError("Invalid Cigar Annotation ({:})".format(c))
-        
+
         ssw.align_destroy(alignment)
         return b"".join(sQ), b"".join(sR)
 
+<<<<<<< HEAD
 
     def extract_barcode(self, barcode_start, barcode_stop):
+=======
+    def extract_barcode(self, query, reference, barcode_start, barcode_stop):
+>>>>>>> 8d7446ce195d72789121e36bc06b1085428760c7
         sCigarInfo = b"MIDNSHP=X"
 
+<<<<<<< HEAD
         dBeg = self.contents.nQryBeg - self.contents.nRefBeg
         truncation = min(self.contents.nQryBeg, self.contents.nRefBeg)
     
+=======
+        dBeg = contents.nQryBeg - contents.nRefBeg
+        truncation = min(contents.nQryBeg, contents.nRefBeg)
+
+>>>>>>> 8d7446ce195d72789121e36bc06b1085428760c7
         dRef_pre_start = 0
-        
+
         ref_start_remaining = barcode_start - dBeg - truncation
         idx = 0
         while ref_start_remaining > 0:
@@ -298,7 +316,7 @@ class Alignment(object):
             n = x >> 4
             m = x & 15
             c = 77 if m > 8 else sCigarInfo[m]
-            if c == 77:  #"M" = match
+            if c == 77:  # "M" = match
                 ref_start_remaining -= n
             elif c == 73:  #'I' = Ins
                 dRef_pre_start += n
@@ -306,14 +324,14 @@ class Alignment(object):
                 ref_start_remaining -= n
             idx += 1
 
-        ref_barcode_remaining = barcode_stop + ref_start_remaining - barcode_start 
+        ref_barcode_remaining = barcode_stop + ref_start_remaining - barcode_start
         dRef_barcode = 0
         while ref_barcode_remaining > 0 and idx < contents.nCigarLen:
             x = self.contents.sCigar[idx]
             n = x >> 4
             m = x & 15
             c = 77 if m > 8 else sCigarInfo[m]
-            if c == 77:  #"M" = match
+            if c == 77:  # "M" = match
                 ref_barcode_remaining -= n
             elif c == 73:  #'I' = Ins
                 dRef_barcode += n
@@ -322,5 +340,38 @@ class Alignment(object):
                 dRef_barcode -= n
             idx += 1
 
+<<<<<<< HEAD
         return self.query[barcode_start + dBeg + dRef_pre_start: barcode_stop + dBeg + dRef_barcode + dRef_pre_start]
 
+=======
+        barcode = query[
+            barcode_start
+            + dBeg
+            + dRef_pre_start : barcode_stop
+            + dBeg
+            + dRef_barcode
+            + dRef_pre_start
+        ]
+
+        ssw.align_destroy(alignment)
+        return barcode
+
+    def fill_Ns(self, char_query, char_reference):
+        query_align, ref_align = self._char_align(char_query, char_reference)
+        middle = bytes(
+            bytearray(
+                [
+                    q if (q != o_N or r == o_gap) else r
+                    for q, r in zip(query_align, ref_align)
+                    if q != o_gap
+                ]
+            )
+        )
+        contents = self.res.contents
+        out = (
+            char_query[: contents.nQryBeg] + middle + char_query[contents.nQryEnd + 1 :]
+        )
+        ssw.init_destroy(self.qProfile)
+        ssw.align_destroy(self.res)
+        return out
+>>>>>>> 8d7446ce195d72789121e36bc06b1085428760c7
