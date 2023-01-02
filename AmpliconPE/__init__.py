@@ -115,39 +115,52 @@ class BarcodeSet(dict):
     def update(self, other):
         for k, v in other.items():
             self[k] = v
-    
+
     def __init__(self, *args, n_mismatches=1):
         self.n_mismatches = n_mismatches
         self.updatae(dict(args))
 
 
 class DoubleAlignment(object):
-    def __init__(self, fwd_align, rev_align, master_read):
-        self.fwd_align = fwd_align
-        self.rev_align = rev_align
+    def __init__(self, fwd_read, rev_read, master_read):
+        self.fwd_align = self.sw.align(fwd_read, master_read.seq)
+        self.rev_align = self.sw.align(rev_read, master_read.reverse_compliment)
+
+        self.fwd_read = fwd_read
+        self.rev_read = rev_read
         self.master_read = master_read
-        
-        self.score = fwd_align.score + rev_align.score
+
+        self.score = self.fwd_align.nScore + self.rev_align.nScore
 
     def extract_barcode(self):
-        fwd_bc = self.fwd_align.extract_barcode(self.master_read.barcode_start, self.master_read.barcode_stop)
-        rev_bc = reverse_compliment(self.rev_align.extract_barcode(self.master_read.rc_start, self.master_read.rc_stop))
+        fwd_bc = self.fwd_read[
+            self.fwd_align.extract_barcode(
+                self.master_read.barcode_start, self.master_read.barcode_stop
+            )
+        ]
+        rev_bc = reverse_compliment(
+            self.rev_read[
+                self.rev_align.extract_barcode(
+                    self.master_read.rc_start, self.master_read.rc_stop
+                )
+            ]
+        )
 
         if len(fwd_bc) != len(rev_bc):
             return "Length Mismatch"
-        return fwd_bc if fwd_bc == rev_bc else ''.join([fwd if fwd == rev else 'N' for fwd, rev in zip(fwd_bc, rev_bc)])
-
+        return (
+            fwd_bc
+            if fwd_bc == rev_bc
+            else "".join(
+                [fwd if fwd == rev else "N" for fwd, rev in zip(fwd_bc, rev_bc)]
+            )
+        )
 
 
 class MasterRead(str):
     def align(self, fwd_read, rev_read):
-        
-        return DoubleAlignment(
-            self.sw.align(fwd_read, self.seq),
-            self.sw.align(rev_read, self.reverse_compliment),
-            self)
+        return DoubleAlignment(fwd_read, rev_read, self)
 
-    
     def __init__(self, seq, alignment_params=ALIGNMENT_PARAMS):
         self.seq = seq
         self.alignmet_params = alignment_params

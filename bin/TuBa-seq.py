@@ -130,10 +130,10 @@ def derep_barcodes(FASTQiter):
         double_alignment = master_read.align(fwd_dna, rev_dna)
         scores[double_alignment.score] += 1
         if double_alignment.score <= min_int_score:
-            continue  
+            continue
 
         barcode = double_alignment.extract_barcode()
-        if barcode == 'Length Mismatch':
+        if barcode == "Length Mismatch":
             continue
 
         known_barcode = barcode[:sgID_length]
@@ -144,10 +144,10 @@ def derep_barcodes(FASTQiter):
 
     poor_alignment = scores[:min_int_score].sum()
     lost = {
-        'Poor Alignment' : poor_alignment,
-        'Length Mismatch': pileups.sum() - poor_alignment,
-        'Index Mismatch' : FASTQiter.index_mismatch
-           }
+        "Poor Alignment": poor_alignment,
+        "Length Mismatch": pileups.sum() - poor_alignment,
+        "Index Mismatch": FASTQiter.index_mismatch,
+    }
     return pileups, lost, scores
 
 
