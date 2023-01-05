@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Simple python wrapper for SSW library
 Please put the path of libssw.so into LD_LIBRARY_PATH or pass it explicitly as a parameter
@@ -256,10 +256,6 @@ class CSsw(object):
         self.align_destroy.restype = None
 
 
-# Beginning of Christopher McFarland's class
-
-import numpy as np
-
 ssw = CSsw()
 
 o_N = ord(b"N")
@@ -274,6 +270,8 @@ class SW(object):
         ssw.init_destroy(self.qProfile)
 
     def __init__(self, match=4, mismatch=2, gap_open=6, gap_extend=1):
+        import numpy as np
+
         # init DNA score matrix
         lEle = list(b"ACGTN")
         nInt2Ele = np.array(lEle, dtype="int8")
