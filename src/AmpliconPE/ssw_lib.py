@@ -11,12 +11,11 @@ import ctypes as ct
 from importlib.util import find_spec
 from pathlib import Path
 
-libssw_path = find_spec("libssw").origin
-
-if libssw_path is None:
+try:
+    libssw_path = find_spec("libssw").origin
+except AttributeError:
     p = Path(find_spec("AmpliconPE").submodule_search_locations[0])
-    ssw_extension = next(p.parent.glob("*libssw*"))
-
+    libssw_path = next(p.parent.glob("*libssw*"))
 
 c_extension = ct.cdll.LoadLibrary(libssw_path)
 
