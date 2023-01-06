@@ -11,6 +11,10 @@ import ctypes as ct
 from importlib import util
 
 # c_extension = ct.cdll.LoadLibrary(util.find_spec("AmpliconPE.libssw").origin)
+
+print(util.find_spec("libssw"))
+print(util.find_spec("AmpliconPE.libssw"))
+
 c_extension = ct.cdll.LoadLibrary(util.find_spec("libssw").origin)
 
 
