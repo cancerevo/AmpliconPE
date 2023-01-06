@@ -162,16 +162,16 @@ class MasterRead(str):
         return DoubleAlignment(fwd_read, rev_read, self)
 
     def __init__(self, seq, alignment_params=ALIGNMENT_PARAMS):
-        self.seq = seq
+        self.seq = bytes(seq)
         self.alignmet_params = alignment_params
-        self.barcode_start = seq.index("N")
-        self.barcode_stop = seq.rindex("N") + 1
+        self.barcode_start = self.seq.index(b"N")
+        self.barcode_stop = self.seq.rindex(b"N") + 1
         self.reverse_compliment = reverse_compliment(self.alignment_seq)
-        self.rc_start = self.reverse_compliment.index("N")
-        self.rc_stop = self.reverse_compliment.rindex("N") + 1
+        self.rc_start = self.reverse_compliment.index(b"N")
+        self.rc_stop = self.reverse_compliment.rindex(b"N") + 1
 
         self.sw = SW(**self.alignment_params)
-        self.self_alignment = self.align(seq, self.reverse_compliment)
+        self.self_alignment = self.align(self.seq, self.reverse_compliment)
         self.max_score = self.self_alignment.score
 
 
