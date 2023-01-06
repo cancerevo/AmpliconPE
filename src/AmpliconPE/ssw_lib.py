@@ -8,14 +8,17 @@ By Yongan Zhao (March 2016)
 import ctypes as ct
 
 # load libssw
-from importlib import util
+from importlib.util import find_spec
+from pathlib import Path
 
-# c_extension = ct.cdll.LoadLibrary(util.find_spec("AmpliconPE.libssw").origin)
+libssw_path = find_spec("libssw").origin
 
-print(util.find_spec("libssw"))
-print(util.find_spec("AmpliconPE.libssw"))
+if libssw_path is None:
+    p = Path(find_spec("AmpliconPE").submodule_search_locations[0])
+    ssw_extension = next(p.parent.glob("*libssw*"))
 
-c_extension = ct.cdll.LoadLibrary(util.find_spec("libssw").origin)
+
+c_extension = ct.cdll.LoadLibrary(libssw_path)
 
 
 class CAlignRes(ct.Structure):
