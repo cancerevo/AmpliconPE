@@ -7,6 +7,12 @@ By Yongan Zhao (March 2016)
 
 import ctypes as ct
 
+# load libssw
+from importlib import util
+
+# c_extension = ct.cdll.LoadLibrary(util.find_spec("AmpliconPE.libssw").origin)
+c_extension = ct.cdll.LoadLibrary(util.find_spec("libssw").origin)
+
 
 class CAlignRes(ct.Structure):
     """
@@ -156,32 +162,25 @@ class CSsw(object):
         """
         init all para
         @para   sLibpath    argparse object
+        @function	Create the query profile using the query sequence.
+        @param	read	pointer to the query sequence; the query sequence needs to be numbers
+        @param	readLen	length of the query sequence
+        @param	mat	pointer to the substitution matrix; mat needs to be corresponding to the read sequence
+        @param	n	the square root of the number of elements in mat (mat has n*n elements)
+        @param	score_size	estimated Smith-Waterman score; if your estimated best alignment score is surely < 255 please set 0; if
+                                                your estimated best alignment score >= 255, please set 1; if you don't know, please set 2
+        @return	pointer to the query profile structure
+        @note	example for parameter read and mat:
+                        If the query sequence is: ACGTATC, the sequence that read points to can be: 1234142
+                        Then if the penalty for match is 2 and for mismatch is -2, the substitution matrix of parameter mat will be:
+                        //A  C  G  T
+                          2 -2 -2 -2 //A
+                         -2  2 -2 -2 //C
+                         -2 -2  2 -2 //G
+                         -2 -2 -2  2 //T
+                        mat is the pointer to the array {2, -2, -2, -2, -2, 2, -2, -2, -2, -2, 2, -2, -2, -2, -2, 2}
         """
-        # load libssw
-        from importlib import util
-
-        self.ssw = ct.cdll.LoadLibrary(util.find_spec("libssw").origin)
-
-        # init ssw_init
-        """
-	@function	Create the query profile using the query sequence.
-	@param	read	pointer to the query sequence; the query sequence needs to be numbers
-	@param	readLen	length of the query sequence
-	@param	mat	pointer to the substitution matrix; mat needs to be corresponding to the read sequence
-	@param	n	the square root of the number of elements in mat (mat has n*n elements)
-	@param	score_size	estimated Smith-Waterman score; if your estimated best alignment score is surely < 255 please set 0; if
-						your estimated best alignment score >= 255, please set 1; if you don't know, please set 2
-	@return	pointer to the query profile structure
-	@note	example for parameter read and mat:
-			If the query sequence is: ACGTATC, the sequence that read points to can be: 1234142
-			Then if the penalty for match is 2 and for mismatch is -2, the substitution matrix of parameter mat will be:
-			//A  C  G  T
-			  2 -2 -2 -2 //A
-			 -2  2 -2 -2 //C
-			 -2 -2  2 -2 //G
-			 -2 -2 -2  2 //T
-			mat is the pointer to the array {2, -2, -2, -2, -2, 2, -2, -2, -2, -2, 2, -2, -2, -2, -2, 2}
-        """
+        self.ssw = c_extension
         self.ssw_init = self.ssw.ssw_init
         self.ssw_init.argtypes = [
             ct.POINTER(ct.c_int8),

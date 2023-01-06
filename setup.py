@@ -14,7 +14,7 @@ if __name__ == "__main__":
     setup(
         ext_modules=[
             Extension(
-                "libssw",
+                "AmpliconPE.libssw",
                 include_dirs=[ssw_dir],
                 sources=[os.path.join(ssw_dir, "ssw.c")],
             )
