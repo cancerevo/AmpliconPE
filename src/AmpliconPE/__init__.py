@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from ssw_lib import SW
+from AmpliconPE.ssw_lib import SW
 import numpy as np
 import datetime
 
@@ -52,14 +52,14 @@ class pairedFASTQiter(object):
 
     def __next__(self):
         fwd_header = self.fwd.readline()
-        fwd_dna = self.fwd.readline()
+        fwd_dna = self.fwd.readline()[:-1]
         self.fwd.readline()
-        fwd_QC = self.fwd.readline()
+        fwd_QC = self.fwd.readline()[:-1]
 
         rev_header = self.rev.readline()
-        rev_dna = self.rev.readline()
+        rev_dna = self.rev.readline()[:-1]
         self.rev.readline()
-        rev_QC = self.rev.readline()
+        rev_QC = self.rev.readline()[:-1]
 
         if not (fwd_header and rev_header and fwd_QC and rev_QC):
 
@@ -118,13 +118,14 @@ class BarcodeSet(dict):
 
     def __init__(self, *args, n_mismatches=1):
         self.n_mismatches = n_mismatches
-        self.updatae(dict(args))
+        if len(args) == 1:
+            self.update(dict(args[0]))
 
 
 class DoubleAlignment(object):
     def __init__(self, fwd_read, rev_read, master_read):
-        self.fwd_align = self.sw.align(fwd_read, master_read.seq)
-        self.rev_align = self.sw.align(rev_read, master_read.reverse_compliment)
+        self.fwd_align = master_read.sw.align(fwd_read, master_read.seq)
+        self.rev_align = master_read.sw.align(rev_read, master_read.reverse_compliment)
 
         self.fwd_read = fwd_read
         self.rev_read = rev_read
@@ -145,16 +146,15 @@ class DoubleAlignment(object):
                 )
             ]
         )
-
         if len(fwd_bc) != len(rev_bc):
             return "Length Mismatch"
+        if fwd_bc == rev_bc:
+            return fwd_bc.decode("ascii")
+        fwd_buffer = np.frombuffer(fwd_bc, dtype=np.uint8)
+        rev_buffer = np.frombuffer(rev_bc, dtype=np.uint8)
         return (
-            fwd_bc
-            if fwd_bc == rev_bc
-            else "".join(
-                [fwd if fwd == rev else "N" for fwd, rev in zip(fwd_bc, rev_bc)]
-            )
-        )
+            np.where(fwd_buffer != rev_buffer, 78, fwd_buffer).tobytes().decode("ascii")
+        )  # Performant reassignment of barcode differences to 'N'
 
 
 class MasterRead(str):
@@ -162,11 +162,11 @@ class MasterRead(str):
         return DoubleAlignment(fwd_read, rev_read, self)
 
     def __init__(self, seq, alignment_params=ALIGNMENT_PARAMS):
-        self.seq = bytes(seq)
-        self.alignmet_params = alignment_params
+        self.seq = seq.encode("ascii") if type(seq) == str else seq
+        self.alignment_params = alignment_params
         self.barcode_start = self.seq.index(b"N")
         self.barcode_stop = self.seq.rindex(b"N") + 1
-        self.reverse_compliment = reverse_compliment(self.alignment_seq)
+        self.reverse_compliment = reverse_compliment(self.seq)
         self.rc_start = self.reverse_compliment.index(b"N")
         self.rc_stop = self.reverse_compliment.rindex(b"N") + 1
 
