@@ -10,6 +10,7 @@ import ctypes as ct
 # load libssw
 from importlib.util import find_spec
 from pathlib import Path
+from sys import modules
 
 try:
     libssw_path = find_spec("libssw").origin
@@ -18,6 +19,9 @@ except AttributeError:
     print(Path(find_spec("AmpliconPE").submodule_search_locations[0]))
     for k in p.parent.glob("*"):
         print(k)
+
+    for k, v in modules.items():
+        print(k, v)
 
     libssw_path = next(p.parent.glob("*libssw*"))
 
