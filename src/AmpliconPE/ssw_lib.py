@@ -11,25 +11,31 @@ import ctypes as ct
 ## load libssw (Chris' extension - very buggy)
 ###############################################################################
 
+
 def get_libssw_path():
     from importlib.util import find_spec
+
     libssw_path = find_spec("libssw").origin
     if libssw_path is not None:
         return libssw_path
     from pathlib import Path
+
     p = Path(find_spec("AmpliconPE").submodule_search_locations[0])
-    try: 
+    try:
         return next(p.parent.glob("*libssw*"))
     except:
         from glob import glob
-        return glob('build/**/libssw*.so', recursive=True)[0]
+
+        return glob("build/**/libssw*.so", recursive=True)[0]
     finally:
         raise ImportError("Could not the libssw shared-object library.")
+
 
 c_extension = ct.cdll.LoadLibrary(get_libssw_path())
 
 ###############################################################################
 ###############################################################################
+
 
 class CAlignRes(ct.Structure):
     """
