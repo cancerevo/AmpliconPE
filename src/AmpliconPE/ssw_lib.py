@@ -16,7 +16,6 @@ def get_libssw_path():
     from importlib.util import find_spec
 
     libssw_path = find_spec("libssw")
-    print(find_spec("libssw"))
     if libssw_path is not None:
         return libssw_path.origin
     try:
@@ -28,10 +27,9 @@ def get_libssw_path():
     except:
         from glob import glob
 
-        # return glob("/home/runner/work/AmpliconPE/**/libssw*.so", recursive=True)[0]
-        base_dir = p.parent.parent.parent.parent
+        base_dir = p.parent.parent.parent
         print(base_dir)
-        return glob(base_dir / "**/libssw*.so", recursive=True)[0]
+        return glob(str(base_dir) + "/**/libssw*.so", recursive=True)[0]
     finally:
         raise ImportError("Could not the libssw shared-object library.")
 
