@@ -29,8 +29,8 @@ def get_libssw_path():
         print(list(Path("/home/runner/work/AmpliconPE").glob("*")))
         from glob import glob
 
-        print(glob("/home/runner/work/AmpliconPE/**/libssw*.so"))
-        print(glob("/home/runner/work/**/libssw*.so"))
+        print(glob("/home/runner/work/AmpliconPE/**/libssw*.so", recursive=True))
+        print(glob("/home/runner/work/**/libssw*.so", recursive=True))
 
         return next(p.parent.glob("*libssw*"))
     except:
