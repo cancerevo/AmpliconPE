@@ -29,7 +29,9 @@ def get_libssw_path():
 
         base_dir = p.parent.parent.parent
         print(base_dir)
-        return glob(str(base_dir) + "/**/libssw*.so", recursive=True)[0]
+        # return glob(str(base_dir) + "/**/libssw*.so", recursive=True)[0]
+        print(glob("/home/runner/work/AmpliconPE/**/libssw*.so", recursive=True)[0])
+        return glob("/home/runner/work/AmpliconPE/**/libssw*.so", recursive=True)[0]
     finally:
         raise ImportError("Could not the libssw shared-object library.")
 
