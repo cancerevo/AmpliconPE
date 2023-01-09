@@ -16,11 +16,13 @@ def get_libssw_path():
     from importlib.util import find_spec
 
     libssw_path = find_spec("libssw")
+    print(find_spec('libssw')
     if libssw_path is not None:
         return libssw_path.origin
     try:
         from pathlib import Path
-
+        print(find_spec('AmpliconPE'))
+        p = Path(find_spec("AmpliconPE").submodule_search_locations[0])
         p = Path(find_spec("AmpliconPE").submodule_search_locations[0])
         return next(p.parent.glob("*libssw*"))
     except:
