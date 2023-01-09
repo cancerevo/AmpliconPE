@@ -22,9 +22,10 @@ def get_libssw_path():
     try:
         from pathlib import Path
 
-        print(find_spec("AmpliconPE"))
+        # print(find_spec("AmpliconPE"))
         p = Path(find_spec("AmpliconPE").submodule_search_locations[0])
-        p = Path(find_spec("AmpliconPE").submodule_search_locations[0])
+        print(list(p.glob("*")))
+        print(list(p.parent.glob("*")))
         return next(p.parent.glob("*libssw*"))
     except:
         from glob import glob
