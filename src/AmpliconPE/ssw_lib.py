@@ -15,13 +15,13 @@ import ctypes as ct
 def get_libssw_path():
     from importlib.util import find_spec
 
-    libssw_path = find_spec("libssw").origin
+    libssw_path = find_spec("libssw")
     if libssw_path is not None:
-        return libssw_path
-    from pathlib import Path
-
-    p = Path(find_spec("AmpliconPE").submodule_search_locations[0])
+        return libssw_path.origin
     try:
+        from pathlib import Path
+
+        p = Path(find_spec("AmpliconPE").submodule_search_locations[0])
         return next(p.parent.glob("*libssw*"))
     except:
         from glob import glob
