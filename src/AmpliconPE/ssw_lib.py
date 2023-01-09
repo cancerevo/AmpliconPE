@@ -24,19 +24,14 @@ def get_libssw_path():
 
         # print(find_spec("AmpliconPE"))
         p = Path(find_spec("AmpliconPE").submodule_search_locations[0])
-        print(list(p.glob("*")))
-        print(list(p.parent.glob("*")))
-        print(list(Path("/home/runner/work/AmpliconPE").glob("*")))
-        from glob import glob
-
-        print(glob("/home/runner/work/AmpliconPE/**/libssw*.so", recursive=True))
-        print(glob("/home/runner/work/**/libssw*.so", recursive=True))
-
         return next(p.parent.glob("*libssw*"))
     except:
         from glob import glob
 
-        return glob("build/**/libssw*.so", recursive=True)[0]
+        # return glob("/home/runner/work/AmpliconPE/**/libssw*.so", recursive=True)[0]
+        base_dir = p.parent.parent.parent.parent
+        print(base_dir)
+        return glob(base_dir / "**/libssw*.so", recursive=True)[0]
     finally:
         raise ImportError("Could not the libssw shared-object library.")
 
