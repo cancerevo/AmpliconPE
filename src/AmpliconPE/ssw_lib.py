@@ -26,6 +26,12 @@ def get_libssw_path():
         p = Path(find_spec("AmpliconPE").submodule_search_locations[0])
         print(list(p.glob("*")))
         print(list(p.parent.glob("*")))
+        print(list(Path("/home/runner/work/AmpliconPE").glob("*")))
+        from glob import glob
+
+        print(glob("/home/runner/work/AmpliconPE/**/libssw*.so"))
+        print(glob("/home/runner/work/**/libssw*.so"))
+
         return next(p.parent.glob("*libssw*"))
     except:
         from glob import glob
