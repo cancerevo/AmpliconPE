@@ -7,25 +7,39 @@ By Yongan Zhao (March 2016)
 
 import ctypes as ct
 
-# load libssw
-from importlib.util import find_spec
-from pathlib import Path
-from sys import modules
+###############################################################################
+## load libssw (Chris' extension - very buggy)
+###############################################################################
 
-try:
-    libssw_path = find_spec("libssw").origin
-except AttributeError:
-    p = Path(find_spec("AmpliconPE").submodule_search_locations[0])
-    print(Path(find_spec("AmpliconPE").submodule_search_locations[0]))
-    for k in p.parent.glob("*"):
-        print(k)
 
-    for k, v in modules.items():
-        print(k, v)
+def get_libssw_path():
+    from importlib.util import find_spec
 
-    libssw_path = next(p.parent.glob("*libssw*"))
+    libssw_path = find_spec("libssw")
+    if libssw_path is not None:
+        return libssw_path.origin
+    try:
+        from pathlib import Path
 
-c_extension = ct.cdll.LoadLibrary(libssw_path)
+        # print(find_spec("AmpliconPE"))
+        p = Path(find_spec("AmpliconPE").submodule_search_locations[0])
+        return next(p.parent.glob("*libssw*"))
+    except:
+        from glob import glob
+
+        base_dir = p.parent.parent.parent
+        print(base_dir)
+        libssw_path = glob(str(base_dir) + "/**/libssw*.so", recursive=True)
+        if len(libssw_path):
+            return libssw_path[0]
+        # return glob("/home/runner/work/AmpliconPE/**/libssw*.so", recursive=True)[0]
+        raise ImportError("Could not the libssw shared-object library.")
+
+
+c_extension = ct.cdll.LoadLibrary(get_libssw_path())
+
+###############################################################################
+###############################################################################
 
 
 class CAlignRes(ct.Structure):
