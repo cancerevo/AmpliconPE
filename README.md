@@ -1,4 +1,5 @@
 [![Lint](https://github.com/cancerevo/AmpliconPE/actions/workflows/black.yml/badge.svg)](https://github.com/cancerevo/AmpliconPE/actions/workflows/black.yml)
+[![Python application](https://github.com/cancerevo/AmpliconPE/actions/workflows/python-app.yml/badge.svg)](https://github.com/cancerevo/AmpliconPE/actions/workflows/python-app.yml)
 
 # AmpliconPE
 Extracts DNA barcodes from Paired-End (PE) amplicon sequencing using a [Smith Waterman alignment][3]
