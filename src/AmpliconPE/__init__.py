@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from AmpliconPE.ssw_lib import SW
+from .ssw_lib import SW
 import numpy as np
 import datetime
 
