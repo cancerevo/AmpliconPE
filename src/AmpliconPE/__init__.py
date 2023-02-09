@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from .ssw_lib import SW
 import numpy as np
-import datetime
+from datetime import datetime
 
 
 ALIGNMENT_PARAMS = dict(match=3, mismatch=-1, gap_open=6, gap_extend=1)
@@ -14,9 +14,6 @@ for nuc, comp in zip(b"ATCGN", b"TAGCN"):
 
 def reverse_compliment(s):
     return b"".join(reverse_map[np.frombuffer(s, np.uint8)[::-1]])
-
-
-ILLUMINA_FAILED_FILTER = b":Y:"
 
 
 def smart_open(filename, mode="rb", makedirs=False):
@@ -38,6 +35,27 @@ def smart_open(filename, mode="rb", makedirs=False):
     if compression in file_openers:
         open = file_openers[compression].open
     return open(str(filename), mode)
+
+
+def get_paired_FASTQs(directory, read_pattern=r"_R[12]_", fastq_pattern="*.fastq*"):
+    import pathlib, re
+
+    fastqs = list(pathlib.Path(directory).glob(fastq_pattern))
+    if len(fastqs) != 2:
+        raise RuntimeError(
+            f"Found {len(fastqs)} fastq files in {directory} (expected 2)"
+        )
+
+    for i, fastq in enumerate(fastqs):
+        match = re.search(read_pattern, str(fastq))
+        if not match.group():
+            raise ValueError(
+                f'No FASTQ number found in {fastq}, using "{read_pattern}" for pattern search.'
+            )
+        if match.group() == "_R1_":
+            fwd = i
+
+    return fastqs[fwd], fastqs[1 - fwd]
 
 
 class pairedFASTQiter(object):
@@ -73,6 +91,7 @@ class pairedFASTQiter(object):
                 )
             raise RuntimeError("Input FASTQ file lengths are not a multiple of 4.")
 
+        ILLUMINA_FAILED_FILTER = b":Y:"
         if (
             not ILLUMINA_FAILED_FILTER in fwd_header
             and not ILLUMINA_FAILED_FILTER in rev_header
@@ -96,8 +115,13 @@ def mismatcher(word, i=2):
             for loc in locs:
                 origChar = word[loc]
                 thisWord[loc] = [l for l in "ACGTN" if l != origChar]
+            # try:
             for poss in product(*thisWord):
                 yield "".join(poss)
+            # except:
+            #    for poss in product(*thisWord):
+            #        print(poss)
+            #    assert False
 
 
 # See https://realpython.com/inherit-python-dict/
@@ -105,9 +129,14 @@ class BarcodeSet(dict):
     def __setitem__(self, barcode, target):
         for mismatch in mismatcher(barcode, self.n_mismatches):
             if mismatch in self:
-                raise ValueError(
-                    f"{mismatch}, a mismatch of {barcode}, is already in BarcodeSet."
-                )
+                if self.robust:
+                    super().__setitem__(mismatch, list(self[mismatch]) + [target])
+                else:
+                    raise ValueError(
+                        f"""{mismatch}, a mismatch of {barcode}, is already in BarcodeSet.
+There are currently {len(self)} barcodes in this set.
+Use BarcodeSet(robust=True) if you would like non-unique mismatches to map to a list of all possible labels."""
+                    )
 
             super().__setitem__(mismatch, target)
         super().__setitem__(barcode, target)
@@ -116,8 +145,9 @@ class BarcodeSet(dict):
         for k, v in other.items():
             self[k] = v
 
-    def __init__(self, *args, n_mismatches=1):
+    def __init__(self, *args, n_mismatches=1, robust=False):
         self.n_mismatches = n_mismatches
+        self.robust = robust
         if len(args) == 1:
             self.update(dict(args[0]))
 
@@ -132,6 +162,24 @@ class DoubleAlignment(object):
         self.master_read = master_read
 
         self.score = self.fwd_align.nScore + self.rev_align.nScore
+
+    def print_cigars(self):
+        fwd_cigar = self.fwd_align.build_cigar(self.fwd_read, self.master_read.seq)
+        rev_cigar = self.rev_align.build_cigar(
+            self.rev_read, self.master_read.reverse_compliment
+        )
+
+        print(
+            f"""Fwd Cigar {self.fwd_align.nScore}/{self.master_read.max_score/2}:
+--------
+{fwd_cigar[0]}
+{fwd_cigar[1]}
+Reverted Rev Cigar {self.rev_align.nScore}/{self.master_read.max_score/2}:
+-----------------------
+{reverse_compliment(rev_cigar[0])}
+{reverse_compliment(rev_cigar[1])}
+"""
+        )
 
     def extract_barcode(self):
         fwd_bc = self.fwd_read[
@@ -148,6 +196,12 @@ class DoubleAlignment(object):
         )
         if len(fwd_bc) != len(rev_bc):
             return "Length Mismatch"
+        print(fwd_bc)
+        print(rev_bc)
+        print()
+        print(self.fwd_align.nScore, self.rev_align.nScore)
+        assert False
+
         if fwd_bc == rev_bc:
             return fwd_bc.decode("ascii")
         fwd_buffer = np.frombuffer(fwd_bc, dtype=np.uint8)

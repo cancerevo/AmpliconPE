@@ -50,8 +50,6 @@ IO_group.add_argument(
     help="All sgRNAs used and their corresponding identifiers.",
 )
 
-IO_group.add_argument("-v", "--verbose", action="store_true", help="Output more Info")
-
 IO_group.add_argument(
     "--output", type=Path, default=Path("output.h5"), help="Name of HDF5 output store."
 )

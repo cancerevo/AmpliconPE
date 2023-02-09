@@ -1,0 +1,14 @@
+
+--------------------------------------------------------------------------------
+Output Summary of Brunello, executed at Thu 26 Jan 2023 11:37:45 AM  with the following input arguments:
+--------------------------------------------------------------------------------
+FASTQ_directory: FASTQs
+sgRNA_file: broadgpp-brunello-library-contents.txt
+output: output.h5
+master_read: AAACACCGNNNNNNNNNNNNNNNNNNNNTTTTAGAG
+min_align_score: 0.75
+mismatches_tolerated: 0
+parallel: False
+--------------------------------------------------------------------------------
+Runtime: 0:00:00
+--------------------------------------------------------------------------------

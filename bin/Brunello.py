@@ -2,10 +2,98 @@
 import pandas as pd
 import argparse
 from pathlib import Path
-from AmpliconPE import MasterRead, BarcodeSet, pairedFASTQiter, logPrint
+from AmpliconPE import (
+    MasterRead,
+    BarcodeSet,
+    get_paired_FASTQs,
+    pairedFASTQiter,
+    logPrint,
+)
 
 
-## Setup BarcodeSet
+#                AGCTTGTGGAAAGGACGAAACACCG GGGGACGGATCCTGGACATG
+#                                                       TTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGCTAGTCCGTTATCAACTTGAAAAAGTGGCACCGAGTCGGTGCTTTTTTGTATTATAAATCTAAGTCTTTAAA
+full_amplicon = (
+    "AGCTTGTGGAAAGGACGAAACACCG"
+    + 20 * "N"
+    + "TTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGCTAGTCCGTTATCAACTTGAAAAAGTGGCACCGAGTCGGTGCTTTTTTGTATTATAAATCTAAGTCTTTAAA"
+)
+
+FLANK_LENGTH = 12
+
+default_master_read = full_amplicon[
+    full_amplicon.find("N")
+    - FLANK_LENGTH : full_amplicon.rindex("N")
+    + 1
+    + FLANK_LENGTH
+]
+
+parser = argparse.ArgumentParser(
+    description="""Determines sgRNA counts from Paired-End Brunello library reads.""",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+)
+
+############################## Input #########################################
+IO_group = parser.add_argument_group("IO", "Input/Output Optional Arguments")
+
+IO_group.add_argument(
+    "--FASTQ_directory",
+    type=Path,
+    default=Path("FASTQs"),
+    help="Iterates over all FASTQs in directory",
+)
+
+IO_group.add_argument(
+    "--sgRNA_file",
+    type=Path,
+    default="broadgpp-brunello-library-contents.txt",
+    help="All sgRNAs used and their corresponding identifiers.",
+)
+
+IO_group.add_argument("-v", "--verbose", action="store_true", help="Output more Info")
+
+IO_group.add_argument(
+    "--output", type=Path, default=Path("output.h5"), help="Name of HDF5 output store."
+)
+
+IO_group.add_argument(
+    "--master_read",
+    type=str,
+    default=default_master_read,
+    help="Non-degenerate amplicon sequence expected",
+)
+
+OP_group = parser.add_argument_group("OP", "Optional arguments affecting operation")
+
+OP_group.add_argument(
+    "--min_align_score",
+    type=float,
+    default=0.75,
+    help="Minimum alignment score needed to keep read, Range [0, 1).",
+)
+
+OP_group.add_argument(
+    "--mismatches_tolerated",
+    type=int,
+    default=1,
+    help="# of mismatches tolerated in sgRNA",
+)
+
+OP_group.add_argument(
+    "-p", "--parallel", action="store_true", help="Parallelize operation."
+)
+
+args = parser.parse_args()
+
+Log = logPrint(args)
+if args.parallel:
+    from pmap import pmap as map
+
+
+directories = [name for name in args.FASTQ_directory.iterdir() if name.is_dir()]
+
+
+## Setup sgRNA_map
 
 # Data Table can be found at: https://www.addgene.org/static/cms/filer_public/8b/4c/8b4c89d9-eac1-44b2-bb2f-8fea95672705/broadgpp-brunello-library-contents.txt
 #
@@ -24,174 +112,72 @@ from AmpliconPE import MasterRead, BarcodeSet, pairedFASTQiter, logPrint
 # Rule Set 2 score                                               0.617
 
 ko_library = pd.read_csv(
-    "broadgpp-brunello-library-contents.txt",
-    sep="\t",
-    usecols=[
-        "Target Gene ID",
-        "Target Gene Symbol",
-        "Target Transcript",
-        "sgRNA Target Sequence",
-    ],
+    args.sgRNA_file, sep="\t", index_col=["sgRNA Target Sequence"]
+)["Target Gene Symbol"]
+
+
+sgRNA_map = BarcodeSet(
+    ko_library.index
+    + "_"
+    + ko_library,  # Hard to mint simple names...Gene Symbol are non-unique & target sequences are uninformative
+    n_mismatches=args.mismatches_tolerated,
+    robust=True,
 )
 
-FLANK_LENGTH = 8
-full_amplicon = "".join(
-    (
-        "GCGCACGTCTGCCGCGCTGTTCTCCTCTTCCTCATCTCCGGGACCCGGA",  # forward flank
-        "........",  # sgID
-        "AA.....TT.....AA.....",  # random barcode
-        "ATGCCCAAGAAGAAGAGGAAGGTGTCCAATTTACTGACCGTACACCAAAATTTGCCTGCATTACCGGTCGATGCAACGAGTGATGAGGTTCGCAAGAACCT",
-    )  # aft flank
-)
-default_master_read = full_amplicon[
-    full_amplicon.find(".")
-    - FLANK_LENGTH : full_amplicon.rindex(".")
-    + 1
-    + FLANK_LENGTH
-].replace(".", "N")
+overlapping = sum(map(lambda v: len(list(v)) > 1, sgRNA_map.values()))
 
-parser = argparse.ArgumentParser(
-    description="""Determines tumor number from Paired-End reads.""",
-    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-)
-
-############################## Input #########################################
-IO_group = parser.add_argument_group("IO", "Input/Output Optional Arguments")
-
-IO_group.add_argument(
-    "--forward_reads",
-    type=Path,
-    default=Path("forward_reads"),
-    help="Directory (or file) containing the forward FASTQ files (or reads).",
-)
-
-IO_group.add_argument(
-    "--reverse_reads",
-    type=Path,
-    default=Path("reverse_reads"),
-    help="Directory (or file) containing the reverse FASTQ files (or reads).",
-)
-
-IO_group.add_argument(
-    "--sgRNA_file",
-    type=Path,
-    default=Path.home() / "tuba" / "sgRNA_info.csv",
-    help="All sgRNAs used and their corresponding identifiers.",
-)
-
-IO_group.add_argument("-v", "--verbose", action="store_true", help="Output more Info")
-
-IO_group.add_argument(
-    "--output", type=Path, default=Path("output.h5"), help="Name of HDF5 output store."
-)
-
-IO_group.add_argument(
-    "--master_read",
-    type=str,
-    default=default_master_read,
-    help="Outline of the amplicon sequence, degenerate bases can be either 'N' or '.'. --trim and --symmetric_flanks depend on this being the full length FASTQ sequence that you expect after merging reads.",
-)
-
-OP_group = parser.add_argument_group("OP", "Optional arguments affecting operation")
-
-OP_group.add_argument(
-    "--min_align_score",
-    type=float,
-    default=0.75,
-    help="Minimum alignment score needed to keep read, Range [0, 1).",
-)
-
-OP_group.add_argument(
-    "-mismatches_tolerated",
-    type=int,
-    default=2,
-    help="# of mismatches tolerated in sgID",
-)
-
-OP_group.add_argument(
-    "-p", "--parallel", action="store_true", help="Parallelize operation."
-)
-
-args = parser.parse_args()
-
-Log = logPrint(args)
-if args.parallel:
-    from pmap import pmap as map
-
-
-if args.forward_reads.is_dir():
-    forward_files = list(args.forward_reads.glob("*.fastq*"))
-    reverse_files = list(args.reverse_reads.glob("*.fastq*"))
-    reverse_basenames = {f.name for f in reverse_files}
-    for f in forward_files:
-        if f.name not in reverse_basenames:
-            raise ValueError(
-                "FASTQ filenames in forward and reverse directories do not match."
-            )
-
-else:
-    forward_files = [args.forward_reads]
-    reverse_files = [args.reverse_reads]
-
-sg_info = pd.read_csv(args.sgRNA_file, converters={"ID": str.upper})
-sgID_length = int(sg_info["ID"].str.len().median())
-
-sgID_map = BarcodeSet(
-    sg_info.set_index("ID")["target"], n_mismatches=args.mismatches_tolerated
+Log(
+    f"{overlapping} of {len(sgRNA_map) - len(ko_library)} sgRNA mismatches overlap ({overlapping/(len(sgRNA_map) - len(ko_library)):.2%})."
 )
 
 master_read = MasterRead(args.master_read)
 
 
-def derep_barcodes(FASTQiter):
+def derep_barcodes(directory):
     import numpy as np
     from collections import Counter
 
     pileups = Counter()
-    scores = pd.DataFrame(
-        np.zeros((master_read.max_score + 1, 2), dtype=np.int64),
-        index=pd.Index(np.linspace(0, 1, num=master_read.max_score + 1), name="Score"),
-    )
+    scores = np.zeros(master_read.max_score + 1, dtype=np.int64)
     min_int_score = int(args.min_align_score * master_read.max_score)
 
-    for fwd_dna, rev_dna in FASTQiter:
+    file_pair = get_paired_FASTQs(directory)
+    fastq_iter = pairedFASTQiter(*file_pair)
+    for fwd_dna, rev_dna in fastq_iter:
 
         double_alignment = master_read.align(fwd_dna, rev_dna)
+        double_alignment.print_cigars()
         scores[double_alignment.score] += 1
         if double_alignment.score <= min_int_score:
             continue
 
-        barcode = double_alignment.extract_barcode()
-        if barcode == "Length Mismatch":
+        sgRNA = double_alignment.extract_barcode()
+        if sgRNA == "Length Mismatch":
             continue
 
-        known_barcode = barcode[:sgID_length]
-        sgRNA_target = sgID_map.get(known_barcode, "Unknown Target")
-        random_barcode = barcode[sgID_length:]
-
-        pileups[(sgRNA_target, random_barcode)] += 1
+        print(fwd_dna)
+        print(rev_dna)
+        print(sgRNA)
+        # print(f"extracted {sgRNA} -> {sgRNA_map.get(sgRNA, 'Unknown')}")
+        pileups[sgRNA_map.get(sgRNA, "Unknown Target")] += 1
 
     poor_alignment = scores[:min_int_score].sum()
     lost = {
         "Poor Alignment": poor_alignment,
         "Length Mismatch": pileups.sum() - poor_alignment,
-        "Index Mismatch": FASTQiter.index_mismatch,
+        "Index Mismatch": fastq_iter.index_mismatch,
     }
-    return pileups, lost, scores
+    return pileups, lost, pd.Series(scores)
 
 
-outputs = map(
-    derep_barcodes,
-    [pairedFASTQiter(*file_pair) for file_pair in zip(forward_files, reverse_files)],
-)
-sample_names = [f.name.partition(".")[0] for f in forward_files]
+outputs = map(derep_barcodes, directories)
 
 
 output_dfs = [
     pd.concat(
         {
-            name: output_S
-            for name, output_S in zip(sample_names, output_set)
+            str(name): output_S
+            for name, output_S in zip(directories, output_set)
             if len(output_S) > 0
         },
         names=["Sample"],
