@@ -5,7 +5,7 @@ from pathlib import Path
 from AmpliconPE import (
     MasterRead,
     BarcodeSet,
-    get_paired_FASTQs,
+    get_PE_FASTQs,
     pairedFASTQiter,
     logPrint,
 )
@@ -141,7 +141,7 @@ def derep_barcodes(directory):
     scores = np.zeros(master_read.max_score + 1, dtype=np.int64)
     min_int_score = int(args.min_align_score * master_read.max_score)
 
-    file_pair = get_paired_FASTQs(directory)
+    file_pair = get_PE_FASTQs(directory)
     fastq_iter = pairedFASTQiter(*file_pair)
     for fwd_dna, rev_dna in fastq_iter:
 
