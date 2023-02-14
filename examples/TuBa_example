@@ -1,0 +1,8 @@
+#!/bin/bash
+set -ex 
+
+tuba_dir=~/tuba-seq
+
+tuba_dir/bin/TuBa-seq.py --sgRNA_file $tuba_dir/data/sgRNA_info.csv --parallel --FASTQ_directory $tuba_dir/data/FASTQs; 
+
+

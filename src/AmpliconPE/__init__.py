@@ -37,7 +37,7 @@ def smart_open(filename, mode="rb", makedirs=False):
     return open(str(filename), mode)
 
 
-def get_paired_FASTQs(directory, read_pattern=r"_R[12]_", fastq_pattern="*.fastq*"):
+def get_PE_FASTQs(directory, read_pattern=r"_R[12]_", fastq_pattern="*.fastq*"):
     import pathlib, re
 
     fastqs = list(pathlib.Path(directory).glob(fastq_pattern))
@@ -209,6 +209,12 @@ Reverted Rev Cigar {self.rev_align.nScore}/{self.master_read.max_score/2}:
         return (
             np.where(fwd_buffer != rev_buffer, 78, fwd_buffer).tobytes().decode("ascii")
         )  # Performant reassignment of barcode differences to 'N'
+
+    def extract_flanks(self):
+        pass
+
+    def flank_mismatches_indels(self):
+        pass
 
 
 class MasterRead(str):
