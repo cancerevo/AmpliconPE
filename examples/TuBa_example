@@ -1,8 +1,8 @@
 #!/bin/bash
 set -ex 
 
-tuba_dir=~/tuba-seq
+AmpliconPE_dir=$HOME/AmpliconPE
 
-tuba_dir/bin/TuBa-seq.py --sgRNA_file $tuba_dir/data/sgRNA_info.csv --parallel --FASTQ_directory $tuba_dir/data/FASTQs; 
+$AmpliconPE_dir/bin/TuBa-seq.py --sgRNA_file $AmpliconPE_dir/data/sgRNA_info.csv --parallel True --FASTQ_directory $AmpliconPE_dir/data/TuBa-seq_FASTQs; 
 
 

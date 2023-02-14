@@ -105,37 +105,42 @@ class pairedFASTQiter(object):
 
 
 # See https://stackoverflow.com/questions/11679855/introducing-mutations-in-a-dna-string-in-python
-from itertools import combinations, product
-
-
 def mismatcher(word, i=2):
+    from itertools import combinations, product
+
     for d in range(i + 1):
         for locs in combinations(range(len(word)), d):
             thisWord = [[char] for char in word]
             for loc in locs:
                 origChar = word[loc]
                 thisWord[loc] = [l for l in "ACGTN" if l != origChar]
-            # try:
             for poss in product(*thisWord):
                 yield "".join(poss)
-            # except:
-            #    for poss in product(*thisWord):
-            #        print(poss)
-            #    assert False
 
 
 # See https://realpython.com/inherit-python-dict/
 class BarcodeSet(dict):
     def __setitem__(self, barcode, target):
+        from scipy.spatial.distance import hamming
+
         for mismatch in mismatcher(barcode, self.n_mismatches):
             if mismatch in self:
                 if self.robust:
-                    super().__setitem__(mismatch, list(self[mismatch]) + [target])
+                    existing_targets = self[mismatch]
+                    super().__setitem__(
+                        mismatch,
+                        existing_targets | {target}
+                        if type(existing_targets) is type(self)
+                        else {existing_targets, target},
+                    )
                 else:
+                    other_target = self[mismatch]
                     raise ValueError(
-                        f"""{mismatch}, a mismatch of {barcode}, is already in BarcodeSet.
-There are currently {len(self)} barcodes in this set.
-Use BarcodeSet(robust=True) if you would like non-unique mismatches to map to a list of all possible labels."""
+                        f"""
+{mismatch}, a {hamming(mismatch, barcode):n}-nt mismatch of {barcode} -> {self[barcode]}, is already in this BarcodeSet, 
+as a {hamming(mismatch, self.inverse_base[other_target]):n}-nt mismatch of {self.inverse_base[other_target]} -> {other_target}.
+There are currently {len(self)} barcodes in this n_mismatches={self.n_mismatches:n} set.
+Use BarcodeSet(robust=True) if you would like non-unique mismatches to map to a set of all possible labels."""
                     )
 
             super().__setitem__(mismatch, target)
@@ -143,13 +148,22 @@ Use BarcodeSet(robust=True) if you would like non-unique mismatches to map to a 
 
     def update(self, other):
         for k, v in other.items():
+            self.inverse_base[v] = k
             self[k] = v
 
     def __init__(self, *args, n_mismatches=1, robust=False):
         self.n_mismatches = n_mismatches
         self.robust = robust
+        self.inverse_base = dict()
         if len(args) == 1:
             self.update(dict(args[0]))
+
+    def pop_nonunique(self):
+        if not self.robust:
+            raise RuntimeError(
+                "Cannot remove non-unique barcodes from a BarcodeSet that is not `robust`"
+            )
+        return {k: v for k, v in self.items() if type(v) is type(set)}
 
 
 class DoubleAlignment(object):

@@ -29,7 +29,7 @@ def derep(
     output: Path = Path("output.h5"),
     master_read: str = default_master_read,
     min_align_score: float = 0.75,
-    mismatches_tolerated: int = 2,
+    mismatches_tolerated: int = 1,
     parallel: bool = False,
 ):
     """Extracts TuBa-seq double barcodes from Paired-End (PE) FASTQ reads & dereplicates
@@ -52,8 +52,12 @@ def derep(
     sgID_length = int(sg_info["ID"].str.len().median())
 
     sgRNA_map = BarcodeSet(
-        sg_info.set_index("ID")["target"], n_mismatches=mismatches_tolerated
+        sg_info.set_index("ID")["target"],
+        n_mismatches=mismatches_tolerated,
+        robust=True,
     )
+
+    sgRNA_map.pop_nonunique()
 
     master_read = MasterRead(master_read)
 
@@ -71,8 +75,8 @@ def derep(
         min_int_score = int(min_align_score * master_read.max_score)
 
         file_pair = get_PE_FASTQs(directory)
-        fastq_iter = pairedFASTQiter(*file_pair)
-        for fwd_dna, rev_dna in FASTQiter:
+        FASTQ_iter = pairedFASTQiter(*file_pair)
+        for fwd_dna, rev_dna in FASTQ_iter:
 
             double_alignment = master_read.align(fwd_dna, rev_dna)
             scores[double_alignment.score] += 1
@@ -100,13 +104,12 @@ def derep(
                 {
                     "Poor Alignment": poor_alignment,
                     "Length Mismatch": pileups.sum() - poor_alignment,
-                    "Index Mismatch": FASTQiter.index_mismatch,
+                    "Index Mismatch": FASTQ_iter.index_mismatch,
                 }
             ),
         }
 
-    N = len(directories)
-    outputs = map(derep_barcodes, directories, N * [master_read], N * [sgRNA_map])
+    outputs = map(derep_barcodes, directories)
 
     consolidated_outputs = {
         table_name: pd.concat(
