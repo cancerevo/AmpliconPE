@@ -55,10 +55,7 @@ def derep(
     master_read = MasterRead(master_read)
 
     pileups = Counter()
-    scores = pd.DataFrame(
-        np.zeros((master_read.max_score + 1, 2), dtype=np.int64),
-        index=pd.Index(np.linspace(0, 1, num=master_read.max_score + 1), name="Score"),
-    )
+    scores = np.zeros(master_read.max_score + 1, dtype=np.int64)
     min_int_score = int(min_align_score * master_read.max_score)
 
     file_pair = get_PE_FASTQs(FASTQ_directory)
@@ -82,24 +79,25 @@ def derep(
 
     poor_alignment = scores[:min_int_score].sum()
 
-    pileups = pd.Series(pileups)
+    pileups = pd.Series(pileups, name="reads")
     pileups.index.names = "target", "barcode"
     pileups.to_csv(FASTQ_directory / "pileups.csv")
 
     stats = pd.concat(
         {
-            "alignment scores": scores,
+            "alignment scores": pd.Series(scores),
             "lost reads": pd.Series(
                 {
                     "Poor Alignment": poor_alignment,
                     "Length Mismatch": pileups.sum() - poor_alignment,
-                    "Index Mismatch": FASTQ_iter.index_mismatch,
+                    "Index Mismatches": FASTQ_iter.index_mismatches,
                 }
             ),
-        },
-        names=["Quantity"],
+        }
     )
-    stats.to_csv("derep_stats.csv")
+    stats.index.names = "type", "outcome"
+    stats.name = "reads"
+    stats.to_csv(FASTQ_directory / "stats.csv")
 
 
 if __name__ == "__main__":

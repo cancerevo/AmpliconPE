@@ -58,6 +58,9 @@ def get_PE_FASTQs(directory, read_pattern=r"_R[12]_", fastq_pattern="*.fastq*"):
     return fastqs[fwd], fastqs[1 - fwd]
 
 
+ILLUMINA_FILTERED = b":Y:"
+
+
 class pairedFASTQiter(object):
     def __iter__(self):
         return self
@@ -66,7 +69,7 @@ class pairedFASTQiter(object):
         self.fwd = smart_open(fwd_file)
         self.rev = smart_open(rev_file)
         self.check_indecies = check_indecies
-        self.filtered_reads = 0
+        self.index_mismatches = 0
 
     def __next__(self):
         fwd_header = self.fwd.readline()
@@ -91,17 +94,14 @@ class pairedFASTQiter(object):
                 )
             raise RuntimeError("Input FASTQ file lengths are not a multiple of 4.")
 
-        ILLUMINA_FAILED_FILTER = b":Y:"
-        if (
-            not ILLUMINA_FAILED_FILTER in fwd_header
-            and not ILLUMINA_FAILED_FILTER in rev_header
-        ):
+        if not (ILLUMINA_FILTERED in fwd_header or ILLUMINA_FILTERED in rev_header):
             if (
-                not self.check_indecies
-                or fwd_header.rpartition(b":")[2] == rev_header.rpartition(b":")[2]
+                self.check_indecies
+                and fwd_header.rpartition(b":")[2] != rev_header.rpartition(b":")[2]
             ):
+                self.index_mismatches += 1
+            else:
                 return fwd_dna, rev_dna
-        self.filtered_reads += 1
 
 
 # See https://stackoverflow.com/questions/11679855/introducing-mutations-in-a-dna-string-in-python
@@ -210,16 +210,11 @@ Reverted Rev Cigar {self.rev_align.nScore}/{self.master_read.max_score/2}:
         )
         if len(fwd_bc) != len(rev_bc):
             return "Length Mismatch"
-        print(fwd_bc)
-        print(rev_bc)
-        print()
-        print(self.fwd_align.nScore, self.rev_align.nScore)
-        assert False
-
         if fwd_bc == rev_bc:
             return fwd_bc.decode("ascii")
         fwd_buffer = np.frombuffer(fwd_bc, dtype=np.uint8)
         rev_buffer = np.frombuffer(rev_bc, dtype=np.uint8)
+
         return (
             np.where(fwd_buffer != rev_buffer, 78, fwd_buffer).tobytes().decode("ascii")
         )  # Performant reassignment of barcode differences to 'N'
