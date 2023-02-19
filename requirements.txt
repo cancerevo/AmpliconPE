@@ -3,3 +3,4 @@ scipy
 pandas
 pathlib
 jsonargparse
+pytables
