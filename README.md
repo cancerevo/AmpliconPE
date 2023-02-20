@@ -12,7 +12,7 @@ From [Johnson et al 2022][1]:
 
 * PE (redundant) seqencing is as cheap as Single-End sequencing(!) and eliminates 99% of errors
 * Homology-based alignment to a reference read is the most robust way to correct read anomalies 
-* Its a _SIMD_-fast & highly extensible library
+* Its _SIMD_-fast & highly extensible
 
 ## Why not use a RegEx expression?
 
