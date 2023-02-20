@@ -2,7 +2,7 @@
 [![Python application](https://github.com/cancerevo/AmpliconPE/actions/workflows/python-app.yml/badge.svg)](https://github.com/cancerevo/AmpliconPE/actions/workflows/python-app.yml)
 
 # AmpliconPE
-Extracts DNA barcodes from Paired-End (PE) amplicon sequencing using a [Smith Waterman alignment][3]
+Extracts DNA barcodes from Paired-End (PE) amplicon sequencing using a [Smith Waterman alignment][3]. Useful for lineage tracing, multiplexed-sgRNA pools, and other ultra-deep sequencing projects.
 
 ## Why use AmpliconPE for barcode extraction?
 
