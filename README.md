@@ -14,7 +14,7 @@ From [Johnson et al 2022][1]:
 * Homology-based alignment to a reference read is the most robust way to correct read anomalies 
 * Its _SIMD_-fast & highly extensible
 
-### Why not use a RegEx expression?
+#### Why not use a RegEx expression?
 
 Fuzzy RegEx libraries use sequence aligners, so they potentially could mimic some of our functionality; however,
 they aren't designed for DNA sequences and lack important functionality in this package.
