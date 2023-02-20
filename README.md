@@ -10,7 +10,7 @@ From [Johnson et al 2022][1]:
 > Extracting barcodes from the sequencing reads may appear as a trivial problem at first glance, given that the structure of the read is known by design. 
 > However, the challenge is that not all reads may have identical structure...
 
-* PE (redundant) seqencing is cheaper(!) than Single-End sequencing and eliminates 99% of errors
+* PE (redundant) seqencing is as cheap as Single-End sequencing(!) and eliminates 99% of errors
 * Homology-based alignment to a reference read is the most robust way to correct read anomalies 
 * Its a _SIMD_-fast, simple & _highly_ extensible library
 
