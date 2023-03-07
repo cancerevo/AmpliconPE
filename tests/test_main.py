@@ -52,7 +52,14 @@ def test_BarcodeSet():
 
 
 def test_TuBa_pileups():
-    new = pd.read_hdf(data_dir / "consolidated_outputs.h5", "pileups")
+    pileups = (data_dir / "TuBa-seq_FASTQs").glob("**/pileups.csv")
+    new = pd.concat(
+        {
+            filename.parts[-2]: pd.read_csv(filename, index_col=["target", "barcode"])
+            for filename in pileups
+        },
+        names=["Sample"],
+    )["reads"]
     reference = pd.read_csv(
         data_dir / "reference_pileups.csv.gz",
         index_col=["sample", "target", "barcode"],
