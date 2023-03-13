@@ -41,6 +41,10 @@ def derep(
         min_align_score: Combined PE alignment score needed to use read, Range [0, 1)
         mismatches_tolerated: # of mismatches tolerated in sgID"""
 
+    # in case running interactively, convert strings to paths
+    FASTQ_directory = Path(FASTQ_directory)
+    sgRNA_file = Path(sgRNA_file)
+    
     sg_info = pd.read_csv(sgRNA_file, converters={"ID": str.upper})
     sgID_length = int(sg_info["ID"].str.len().median())
 
