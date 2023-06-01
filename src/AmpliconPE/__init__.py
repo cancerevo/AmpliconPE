@@ -105,7 +105,9 @@ class pairedFASTQiter(object):
 
 
 # See https://stackoverflow.com/questions/11679855/introducing-mutations-in-a-dna-string-in-python
-def mismatcher(word, i=2):
+def mismatcher(word, i=2, alterations="ACGTN"):
+    """Iterator that yields all possible deviations of `word` up to i differences with `alterations` as all alternate characters. 
+"""
     from itertools import combinations, product
 
     for d in range(i + 1):
@@ -113,7 +115,7 @@ def mismatcher(word, i=2):
             thisWord = [[char] for char in word]
             for loc in locs:
                 origChar = word[loc]
-                thisWord[loc] = [l for l in "ACGTN" if l != origChar]
+                thisWord[loc] = [l for l in alterations if l != origChar]
             for poss in product(*thisWord):
                 yield "".join(poss)
 
