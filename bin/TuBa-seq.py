@@ -83,10 +83,6 @@ def derep(
 
     poor_alignment = scores[:min_int_score].sum()
 
-    pileups = pd.Series(pileups, name="reads")
-    pileups.index.names = "target", "barcode"
-    pileups.to_csv(FASTQ_directory / "pileups.csv")
-
     stats = pd.concat(
         {
             "alignment scores": pd.Series(scores),
@@ -103,6 +99,9 @@ def derep(
     stats.name = "reads"
     stats.to_csv(FASTQ_directory / "stats.csv")
 
+    pileups = pd.Series(pileups, name="reads")
+    pileups.index.names = "target", "barcode"
+    pileups.to_csv(FASTQ_directory / "pileups.csv")
 
 if __name__ == "__main__":
     CLI()

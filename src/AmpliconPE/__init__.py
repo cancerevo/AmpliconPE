@@ -5,6 +5,8 @@ from datetime import datetime
 
 
 ALIGNMENT_PARAMS = dict(match=3, mismatch=-1, gap_open=6, gap_extend=1)
+FASTQ_EXTs = 'fastq', 'fq'
+ILLUMINA_FILTERED = b":Y:"
 
 
 reverse_map = np.zeros(256, dtype=np.uint8)
@@ -16,31 +18,26 @@ def reverse_compliment(s):
     return b"".join(reverse_map[np.frombuffer(s, np.uint8)[::-1]])
 
 
-def smart_open(filename, mode="rb", makedirs=False):
-    """Infers compression of file from extension.
-
-    Parameters:
-    -----------
-    mode : Filemode string (default: 'rb').
-
-    makedirs : Create directory tree for file, if non-existent (default: False)."""
+def open_FASTQ(filename):
+    """opens potentially-compressed FASTQ properly."""
     from pathlib import Path
     import gzip, bz2, lzma
 
-    file_openers = dict(gz=gzip, gzip=gzip, lzma=lzma, xz=lzma, bz2=bz2)
     File = Path(filename)
-    if makedirs:
-        File.parent.mkdir(exist_ok=True)
-    compression = File.suffix[1:]
-    if compression in file_openers:
-        open = file_openers[compression].open
-    return open(str(filename), mode)
+    suffix = File.suffix[1:]
+    if suffix in FASTQ_EXTs:
+        return open(File)
 
+    file_openers = dict(gz=gzip, gzip=gzip, lzma=lzma, xz=lzma, bz2=bz2)
+    if suffix not in file_openers:
+        raise ValueError(f"Cannot determine compression of {File}.")
+    return file_openers[suffix].open(str(filename))
+            
 
-def get_PE_FASTQs(directory, read_pattern=r"_R[12]_", fastq_pattern="*.fastq*"):
+def get_PE_FASTQs(directory, read_pattern=r"_R[12]_"):
     import pathlib, re
 
-    fastqs = list(pathlib.Path(directory).glob(fastq_pattern))
+    fastqs = [filename for fastq_ext in fASTQ_EXTs for filename in pathlib.Path(directory).glob('*.'+fastq_ext+'*')]
     if len(fastqs) != 2:
         raise RuntimeError(
             f"Found {len(fastqs)} fastq files in {directory} (expected 2)"
@@ -52,13 +49,11 @@ def get_PE_FASTQs(directory, read_pattern=r"_R[12]_", fastq_pattern="*.fastq*"):
             raise ValueError(
                 f'No FASTQ number found in {fastq}, using "{read_pattern}" for pattern search.'
             )
-        if match.group() == "_R1_":
+        if '1' in match.group():
             fwd = i
 
     return fastqs[fwd], fastqs[1 - fwd]
 
-
-ILLUMINA_FILTERED = b":Y:"
 
 
 class pairedFASTQiter(object):
