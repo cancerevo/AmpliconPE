@@ -37,7 +37,7 @@ def open_FASTQ(filename):
 def get_PE_FASTQs(directory, read_pattern=r"_R[12]_"):
     import pathlib, re
 
-    fastqs = [filename for fastq_ext in fASTQ_EXTs for filename in pathlib.Path(directory).glob('*.'+fastq_ext+'*')]
+    fastqs = [filename for fastq_ext in FASTQ_EXTs for filename in pathlib.Path(directory).glob('*.'+fastq_ext+'*')]
     if len(fastqs) != 2:
         raise RuntimeError(
             f"Found {len(fastqs)} fastq files in {directory} (expected 2)"
@@ -61,8 +61,8 @@ class pairedFASTQiter(object):
         return self
 
     def __init__(self, fwd_file, rev_file, check_indecies=True):
-        self.fwd = smart_open(fwd_file)
-        self.rev = smart_open(rev_file)
+        self.fwd = open_FASTQ(fwd_file)
+        self.rev = open_FASTQ(rev_file)
         self.check_indecies = check_indecies
         self.index_mismatches = 0
 
@@ -171,8 +171,9 @@ class DoubleAlignment(object):
         self.fwd_read = fwd_read
         self.rev_read = rev_read
         self.master_read = master_read
-
+        
         self.score = self.fwd_align.nScore + self.rev_align.nScore
+
 
     def print_cigars(self):
         fwd_cigar = self.fwd_align.build_cigar(self.fwd_read, self.master_read.seq)
@@ -239,6 +240,15 @@ class MasterRead(str):
         self.sw = SW(**self.alignment_params)
         self.self_alignment = self.align(self.seq, self.reverse_compliment)
         self.max_score = self.self_alignment.score
+
+        self.scores = np.zeros((self.max_score+1, 3), dtype=np.uint64)
+
+    
+    def count_scores(self, double_alignment):
+        self.scores[double_alignment.fwd_align.nScore,  0] += 1
+        self.scores[double_alignment.rev_align.nScore,  1] += 1
+        self_score =  self.sw.align(double_alignment.fwd_read, reverse_compliment(double_alignment.rev_read)).nScore 
+        self.scores[self_score, 2] += 1
 
 
 class logPrint(object):

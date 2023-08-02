@@ -24,6 +24,8 @@ default_master_read = full_amplicon[
     + FLANK_LENGTH
 ].replace(".", "N")
 
+OUTPUT_TABLES = 'stats', 'scores', 'pileups'
+
 
 def derep(
     FASTQ_directory: Path,
@@ -59,16 +61,17 @@ def derep(
     master_read = MasterRead(master_read)
 
     pileups = Counter()
-    scores = np.zeros(master_read.max_score + 1, dtype=np.int64)
     min_int_score = int(min_align_score * master_read.max_score)
+    poor_alignment = 0
 
     file_pair = get_PE_FASTQs(FASTQ_directory)
     FASTQ_iter = pairedFASTQiter(*file_pair)
     for fwd_dna, rev_dna in FASTQ_iter:
 
         double_alignment = master_read.align(fwd_dna, rev_dna)
-        scores[double_alignment.score] += 1
+        master_read.count_scores(double_alignment)
         if double_alignment.score <= min_int_score:
+            poor_alignment += 1
             continue
 
         barcode = double_alignment.extract_barcode()
@@ -81,27 +84,31 @@ def derep(
 
         pileups[(sgRNA_target, random_barcode)] += 1
 
-    poor_alignment = scores[:min_int_score].sum()
 
-    stats = pd.concat(
-        {
-            "alignment scores": pd.Series(scores),
-            "lost reads": pd.Series(
+    ## Output
+
+    def to_csv(table):
+        name = f'{table=}'.split('=')[0]
+        table.to_csv(FASTQ_directory / name+'.csv')
+
+    scores = pd.DataFrame(master_read.scores, columns=['Fwd-Ref', 'Rev-Ref', 'Fwd-Rev'])
+    scores.index.names = ['Score']
+    to_csv(scores)
+
+    stats = pd.Series(
                 {
                     "Poor Alignment": poor_alignment,
                     "Length Mismatch": pileups.sum() - poor_alignment,
                     "Index Mismatches": FASTQ_iter.index_mismatches,
                 }
-            ),
-        }
-    )
-    stats.index.names = "type", "outcome"
+            )
+    stats.index.names = "outcome"
     stats.name = "reads"
-    stats.to_csv(FASTQ_directory / "stats.csv")
-
+    to_csv(stats)
+    
     pileups = pd.Series(pileups, name="reads")
     pileups.index.names = "target", "barcode"
-    pileups.to_csv(FASTQ_directory / "pileups.csv")
+    to_csv(pileups)
 
 if __name__ == "__main__":
     CLI()
