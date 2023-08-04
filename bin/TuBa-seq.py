@@ -4,9 +4,8 @@ from jsonargparse import CLI
 
 from pathlib import Path
 from AmpliconPE import MasterRead, BarcodeSet, pairedFASTQiter, get_PE_FASTQs
-import numpy as np
 from collections import Counter
-
+import numpy as np
 
 FLANK_LENGTH = 8
 full_amplicon = "".join(
@@ -24,7 +23,7 @@ default_master_read = full_amplicon[
     + FLANK_LENGTH
 ].replace(".", "N")
 
-OUTPUT_TABLES = 'stats', 'scores', 'pileups'
+OUTPUT_TABLES = "stats", "scores", "pileups"
 
 
 def derep(
@@ -37,7 +36,7 @@ def derep(
     """Extracts TuBa-seq double barcodes from Paired-End (PE) FASTQ reads & dereplicates
 
     Args:
-        FASTQ_Directory (or file) containing the forward FASTQ run(s)
+        FASTQ_directory (or file) containing the forward FASTQ run(s)
         sgRNA_file: All sgRNAs used and their corresponding genes
         master_read: Flanking amplicon sequence to align to each read
         min_align_score: Combined PE alignment score needed to use read, Range [0, 1)
@@ -46,7 +45,7 @@ def derep(
     # in case running interactively, convert strings to paths
     FASTQ_directory = Path(FASTQ_directory)
     sgRNA_file = Path(sgRNA_file)
-    
+
     sg_info = pd.read_csv(sgRNA_file, converters={"ID": str.upper})
     sgID_length = int(sg_info["ID"].str.len().median())
 
@@ -62,7 +61,7 @@ def derep(
 
     pileups = Counter()
     min_int_score = int(min_align_score * master_read.max_score)
-    poor_alignment = 0
+    scores = np.zeros(master_read.max_score + 1, dtype=np.int64)
 
     file_pair = get_PE_FASTQs(FASTQ_directory)
     FASTQ_iter = pairedFASTQiter(*file_pair)
@@ -71,7 +70,6 @@ def derep(
         double_alignment = master_read.align(fwd_dna, rev_dna)
         master_read.count_scores(double_alignment)
         if double_alignment.score <= min_int_score:
-            poor_alignment += 1
             continue
 
         barcode = double_alignment.extract_barcode()
@@ -84,31 +82,36 @@ def derep(
 
         pileups[(sgRNA_target, random_barcode)] += 1
 
-
     ## Output
 
-    def to_csv(table):
-        name = f'{table=}'.split('=')[0]
-        table.to_csv(FASTQ_directory / name+'.csv')
+    poor_alignment = scores[:min_int_score].sum()
 
-    scores = pd.DataFrame(master_read.scores, columns=['Fwd-Ref', 'Rev-Ref', 'Fwd-Rev'])
-    scores.index.names = ['Score']
-    to_csv(scores)
+    read_tallies = pd.concat(
+        dict(
+            Alignment=pd.Series(
+                scores, index=pd.RangeIndex(stop=len(scores), name="Score")
+            ),
+            Totals=pd.Series(
+                [
+                    poor_alignment,
+                    pileups.sum() - poor_alignment,
+                    FASTQ_iter.index_mismatches,
+                ],
+                pd.Index(
+                    ["Poor Alignment", "Length Mismatch", "Index Mismatches"],
+                    name="Total",
+                ),
+            ),
+        ),
+        names=["Outcome"],
+    )
+    read_tallies.name = "Reads"
+    read_tallies.to_csv(FASTQ_directory / "read_tallies.csv")
 
-    stats = pd.Series(
-                {
-                    "Poor Alignment": poor_alignment,
-                    "Length Mismatch": pileups.sum() - poor_alignment,
-                    "Index Mismatches": FASTQ_iter.index_mismatches,
-                }
-            )
-    stats.index.names = "outcome"
-    stats.name = "reads"
-    to_csv(stats)
-    
     pileups = pd.Series(pileups, name="reads")
     pileups.index.names = "target", "barcode"
-    to_csv(pileups)
+    pileups.to_csv(FASTQ_directory / "pileups.csv")
+
 
 if __name__ == "__main__":
     CLI()

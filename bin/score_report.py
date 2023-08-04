@@ -14,7 +14,7 @@ Questions-Evidence (E) pairs:
 
 3. Did any samples have poor PCR?
     E: Fwd-Rev match, but not ref (for aligned)
-        2*Fwd-Rev / Fwd-Ref+Rev-Ref by sample | aligned
+        E[N] / E[Max_Score - Score] : aligned
 
 4. Did any samples have poor index matching?
     E: Index mismatch %
@@ -27,6 +27,14 @@ Questions-Evidence (E) pairs:
 
 7. What is the sgID representation?
     E: sgID coverage (pileups & counts)
+
+LAYOUT:
+Histograms  -> 1,
+                2
+Ratios      -> 3, 
+%           -> 4, 5
+Totals      -> 6
+sgID % (2-ways)
 """
 
 def histogram(data, ax):

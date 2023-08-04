@@ -5,7 +5,7 @@ from datetime import datetime
 
 
 ALIGNMENT_PARAMS = dict(match=3, mismatch=-1, gap_open=6, gap_extend=1)
-FASTQ_EXTs = 'fastq', 'fq'
+FASTQ_EXTs = "fastq", "fq"
 ILLUMINA_FILTERED = b":Y:"
 
 
@@ -32,12 +32,16 @@ def open_FASTQ(filename):
     if suffix not in file_openers:
         raise ValueError(f"Cannot determine compression of {File}.")
     return file_openers[suffix].open(str(filename))
-            
+
 
 def get_PE_FASTQs(directory, read_pattern=r"_R[12]_"):
     import pathlib, re
 
-    fastqs = [filename for fastq_ext in FASTQ_EXTs for filename in pathlib.Path(directory).glob('*.'+fastq_ext+'*')]
+    fastqs = [
+        filename
+        for fastq_ext in FASTQ_EXTs
+        for filename in pathlib.Path(directory).glob("*." + fastq_ext + "*")
+    ]
     if len(fastqs) != 2:
         raise RuntimeError(
             f"Found {len(fastqs)} fastq files in {directory} (expected 2)"
@@ -49,11 +53,10 @@ def get_PE_FASTQs(directory, read_pattern=r"_R[12]_"):
             raise ValueError(
                 f'No FASTQ number found in {fastq}, using "{read_pattern}" for pattern search.'
             )
-        if '1' in match.group():
+        if "1" in match.group():
             fwd = i
 
     return fastqs[fwd], fastqs[1 - fwd]
-
 
 
 class pairedFASTQiter(object):
@@ -101,8 +104,7 @@ class pairedFASTQiter(object):
 
 # See https://stackoverflow.com/questions/11679855/introducing-mutations-in-a-dna-string-in-python
 def mismatcher(word, i=2, alterations="ACGTN"):
-    """Iterator that yields all possible deviations of `word` up to i differences with `alterations` as all alternate characters. 
-"""
+    """Iterator that yields all possible deviations of `word` up to i differences with `alterations` as all alternate characters."""
     from itertools import combinations, product
 
     for d in range(i + 1):
@@ -171,9 +173,8 @@ class DoubleAlignment(object):
         self.fwd_read = fwd_read
         self.rev_read = rev_read
         self.master_read = master_read
-        
-        self.score = self.fwd_align.nScore + self.rev_align.nScore
 
+        self.score = self.fwd_align.nScore + self.rev_align.nScore
 
     def print_cigars(self):
         fwd_cigar = self.fwd_align.build_cigar(self.fwd_read, self.master_read.seq)
@@ -241,13 +242,16 @@ class MasterRead(str):
         self.self_alignment = self.align(self.seq, self.reverse_compliment)
         self.max_score = self.self_alignment.score
 
-        self.scores = np.zeros((self.max_score+1, 3), dtype=np.uint64)
+    def _count_scores(self, double_alignment):
+        """Probably deprecate -> easier to count 'N' bases in pileups than to look at a wider fwd-rev match"""
+        if not hasattr(self, "scores"):
+            self.scores = np.zeros((self.max_score + 1, 3), dtype=np.uint64)
 
-    
-    def count_scores(self, double_alignment):
-        self.scores[double_alignment.fwd_align.nScore,  0] += 1
-        self.scores[double_alignment.rev_align.nScore,  1] += 1
-        self_score =  self.sw.align(double_alignment.fwd_read, reverse_compliment(double_alignment.rev_read)).nScore 
+        self.scores[double_alignment.fwd_align.nScore, 0] += 1
+        self.scores[double_alignment.rev_align.nScore, 1] += 1
+        self_score = self.sw.align(
+            double_alignment.fwd_read, reverse_compliment(double_alignment.rev_read)
+        ).nScore
         self.scores[self_score, 2] += 1
 
 
