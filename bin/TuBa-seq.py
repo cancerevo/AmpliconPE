@@ -61,7 +61,7 @@ def derep(
 
     pileups = Counter()
     min_int_score = int(min_align_score * master_read.max_score)
-    scores = np.zeros(master_read.max_score + 1, dtype=np.int64)
+    poor_alignment = 0
 
     file_pair = get_PE_FASTQs(FASTQ_directory)
     FASTQ_iter = pairedFASTQiter(*file_pair)
@@ -70,6 +70,7 @@ def derep(
         double_alignment = master_read.align(fwd_dna, rev_dna)
         master_read.count_scores(double_alignment)
         if double_alignment.score <= min_int_score:
+            poor_alignment += 1
             continue
 
         barcode = double_alignment.extract_barcode()
@@ -84,29 +85,27 @@ def derep(
 
     ## Output
 
-    poor_alignment = scores[:min_int_score].sum()
-
-    read_tallies = pd.concat(
-        dict(
-            Alignment=pd.Series(
-                scores, index=pd.RangeIndex(stop=len(scores), name="Score")
-            ),
-            Totals=pd.Series(
-                [
-                    poor_alignment,
-                    pileups.sum() - poor_alignment,
-                    FASTQ_iter.index_mismatches,
-                ],
-                pd.Index(
-                    ["Poor Alignment", "Length Mismatch", "Index Mismatches"],
-                    name="Total",
-                ),
-            ),
-        ),
-        names=["Outcome"],
+    scores = pd.Series(
+        {score_trio: reads for score_trio, reads in np.ndenumerate(master_read.scores)},
+        name="reads",
     )
-    read_tallies.name = "Reads"
-    read_tallies.to_csv(FASTQ_directory / "read_tallies.csv")
+    scores.index.names = ["Fwd-Ref", "Rev-Ref", "Fwd-Rev"]
+    scores.to_csv(FASTQ_directory / "scores.csv")
+
+    read_tallies = pd.Series(
+        [
+            poor_alignment,
+            pileups.sum() - poor_alignment,
+            FASTQ_iter.index_mismatches,
+            pileups.sum(),
+        ],
+        pd.Index(
+            ["Poor Alignment", "Length Mismatch", "Index Mismatches", "Passed"],
+            name="Outcome",
+        ),
+        name="reads",
+    )
+    read_tallies.to_csv(FASTQ_directory / "outcomes.csv")
 
     pileups = pd.Series(pileups, name="reads")
     pileups.index.names = "target", "barcode"

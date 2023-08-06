@@ -242,17 +242,26 @@ class MasterRead(str):
         self.self_alignment = self.align(self.seq, self.reverse_compliment)
         self.max_score = self.self_alignment.score
 
-    def _count_scores(self, double_alignment):
+    def tally_score(self, double_alignment):
         """Probably deprecate -> easier to count 'N' bases in pileups than to look at a wider fwd-rev match"""
         if not hasattr(self, "scores"):
-            self.scores = np.zeros((self.max_score + 1, 3), dtype=np.uint64)
+            score_range = self.self_alignment.fwd_align.nScore + 1
+            self.scores = np.zeros(3 * (score_range,), dtype=np.uint64)
 
-        self.scores[double_alignment.fwd_align.nScore, 0] += 1
-        self.scores[double_alignment.rev_align.nScore, 1] += 1
-        self_score = self.sw.align(
-            double_alignment.fwd_read, reverse_compliment(double_alignment.rev_read)
-        ).nScore
-        self.scores[self_score, 2] += 1
+        fwd_core = double_alignment.fwd_read[
+            double_alignment.fwd_align.extract_barcode(0, len(self.master_read))
+        ]
+        rev_core = double_alignment.rev_read[
+            double_alignment.rev_align.extract_barcode(0, len(self.master_read))
+        ]
+
+        self_score = self.sw.align(fwd_core, reverse_compliment(rev_core)).nScore
+
+        self.scores[
+            double_alignment.fwd_align.nScore,
+            double_alignment.rev_align.nScore,
+            self_score,
+        ] += 1
 
 
 class logPrint(object):
