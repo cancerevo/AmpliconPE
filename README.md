@@ -11,8 +11,11 @@ From [Johnson et al 2022][1]:
 > However, the challenge is that not all reads may have identical structure...
 
 * PE (redundant) seqencing is as cheap as Single-End sequencing(!) and eliminates 99% of errors
+* Both Homology to the reference read and agreement between the forward- and reverse-reads are informative (most people only threshold on one attribute) 
 * Homology-based alignment to a reference read is the most robust way to correct read anomalies 
 * Its _SIMD_-fast & highly extensible
+
+
 
 ### Why not use a RegEx expression?
 
