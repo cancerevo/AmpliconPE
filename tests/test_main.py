@@ -28,21 +28,34 @@ def test_pairedFASTQiter():
 
 def test_MasterRead():
     read = 2 * "ACGT" + 2 * "NNNNAA" + 2 * "ACGT"
-    master_read = MasterRead(read)
-    assert master_read.max_score == 120
-    rc = reverse_compliment(read.encode("ascii"))
+    alignment_params = dict(match=6, mismatch=-2, gap_open=6, gap_extend=1)
+    master_read = MasterRead(read, **alignment_params)
 
-    perfect_alignment = master_read.align(
-        read.replace("N", "T").encode("ascii"), rc.replace(b"N", b"A")
-    )
-    assert perfect_alignment.score == 120
-    assert perfect_alignment.extract_barcode() == "TTTTAATTTT"
+    fwd_read = read.encode("ascii")
+    rev_read = reverse_compliment(fwd_read)
 
-    fwd_read = (read[:4] + read[5:]).replace("N", "T")
-    rev_read = (rc[:-3] + b"A" + rc[-2:]).replace(b"N", b"T")
-    imperfect_alignment = master_read.align(fwd_read.encode("ascii"), rev_read)
-    assert imperfect_alignment.score == 107
+    perfect_seq_pair = fwd_read.replace(b"N", b"T"), rev_read.replace(b"N", b"A")
+    perfect_barcode = "TTTTAATTTT"
+    perfect_score = 240
+
+    imperfect_seq_pair = (fwd_read[:4] + fwd_read[5:]).replace(b"N", b"T"), (
+        rev_read[:-3] + b"A" + rev_read[-2:]
+    ).replace(b"N", b"T")
+    imperfect_score = 220
+
+    assert master_read.max_score == perfect_score
+
+    perfect_alignment = master_read.align(*perfect_seq_pair)
+    assert perfect_alignment.score == master_read.max_score
+    assert perfect_alignment.extract_barcode() == perfect_barcode
+
+    imperfect_alignment = master_read.align(*imperfect_seq_pair)
+    assert imperfect_alignment.score == imperfect_score
     assert imperfect_alignment.extract_barcode() == "NNNAANNNNA"
+
+    perfect_simplex_alignment = master_read.simplex_align(*perfect_seq_pair)
+    assert perfect_simplex_alignment.get_scores() == (120, 120, 168, 120)
+    assert perfect_simplex_alignment.extract_barcode() == perfect_barcode
 
 
 def test_BarcodeSet():

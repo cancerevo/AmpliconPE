@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-from .ssw_lib import SW
+from .ssw_lib import SW, buffer_merge
 import numpy as np
 from datetime import datetime
 
-
-ALIGNMENT_PARAMS = dict(match=3, mismatch=-1, gap_open=6, gap_extend=1)
 FASTQ_EXTs = "fastq", "fq"
 ILLUMINA_FILTERED = b":Y:"
+
+ALIGNMENT_PARAMS = dict(match=2, mismatch=-2, gap_open=6, gap_extend=1)
 
 
 reverse_map = np.zeros(256, dtype=np.uint8)
@@ -207,31 +207,64 @@ Reverted Rev Cigar {self.rev_align.nScore}/{self.master_read.max_score/2}:
                 )
             ]
         )
-        if len(fwd_bc) != len(rev_bc):
-            return "Length Mismatch"
-        if fwd_bc == rev_bc:
-            return fwd_bc.decode("ascii")
-        fwd_buffer = np.frombuffer(fwd_bc, dtype=np.uint8)
-        rev_buffer = np.frombuffer(rev_bc, dtype=np.uint8)
-
         return (
-            np.where(fwd_buffer != rev_buffer, 78, fwd_buffer).tobytes().decode("ascii")
-        )  # Performant reassignment of barcode differences to 'N'
-
-    def extract_flanks(self):
-        pass
-
-    def flank_mismatches_indels(self):
-        pass
+            buffer_merge(fwd_bc, rev_bc).decode("ascii")
+            if len(fwd_bc) == len(rev_bc)
+            else "Length Mismatch"
+        )
 
 
-class MasterRead(str):
+class SimplexAlignment(object):
+    def __init__(self, fwd_read, rev_read, master_read):
+        self.fwd_align = master_read.sw.align(fwd_read, master_read.seq)
+        self.rev_align = master_read.sw.align(rev_read, master_read.reverse_compliment)
+
+        self.fwd_read = fwd_read
+        self.rev_read = rev_read
+        self.master_read = master_read
+
+        self.fwd_core = fwd_read[self.fwd_align.query_core()]
+        self.rev_core = reverse_compliment(rev_read[self.rev_align.query_core()])
+
+        self.core_align = master_read.sw.align(self.fwd_core, self.rev_core)
+        self.core_consensus = self.core_align.build_consensus(
+            self.fwd_core, self.rev_core, len(master_read.seq)
+        )
+
+        self.final_align = master_read.sw.align(self.core_consensus, master_read.seq)
+
+    def get_scores(self):
+        return (
+            self.fwd_align.nScore,
+            self.rev_align.nScore,
+            self.core_align.nScore,
+            self.final_align.nScore,
+        )
+
+    def get_final_score(self):
+        return self.final_align.nScore
+
+    def extract_barcode(self):
+        return self.core_consensus[
+            self.final_align.extract_barcode(
+                self.master_read.barcode_start, self.master_read.barcode_stop
+            )
+        ].decode("ascii")
+
+
+class MasterRead(object):
+    alignment_params = ALIGNMENT_PARAMS.copy()
+
     def align(self, fwd_read, rev_read):
         return DoubleAlignment(fwd_read, rev_read, self)
 
-    def __init__(self, seq, alignment_params=ALIGNMENT_PARAMS):
+    def simplex_align(self, fwd_read, rev_read):
+        return SimplexAlignment(fwd_read, rev_read, self)
+
+    def __init__(self, seq, **alignment_params):
         self.seq = seq.encode("ascii") if type(seq) == str else seq
-        self.alignment_params = alignment_params
+        self.alignment_params.update(alignment_params)
+
         self.barcode_start = self.seq.index(b"N")
         self.barcode_stop = self.seq.rindex(b"N") + 1
         self.reverse_compliment = reverse_compliment(self.seq)
@@ -242,21 +275,24 @@ class MasterRead(str):
         self.self_alignment = self.align(self.seq, self.reverse_compliment)
         self.max_score = self.self_alignment.score
 
+        # Setup score matrix
+        seq_no_Ns = self.seq.replace(b"N", b"A")
+        max_self_score = self.sw.align(seq_no_Ns, seq_no_Ns).nScore + 1
+        max_ref_score = (self.max_score // 2) + 1
+        self.scores = np.zeros(
+            (max_ref_score, max_ref_score, max_self_score), dtype=np.uint64
+        )
+
     def tally_score(self, double_alignment):
         """Probably deprecate -> easier to count 'N' bases in pileups than to look at a wider fwd-rev match"""
-        if not hasattr(self, "scores"):
-            score_range = self.self_alignment.fwd_align.nScore + 1
-            self.scores = np.zeros(3 * (score_range,), dtype=np.uint64)
 
-        fwd_core = double_alignment.fwd_read[
-            double_alignment.fwd_align.extract_barcode(0, len(self.master_read))
-        ]
-        rev_core = double_alignment.rev_read[
-            double_alignment.rev_align.extract_barcode(0, len(self.master_read))
-        ]
+        fwd_start = double_alignment.fwd_align.extract_barcode(0, -1).start
+        fwd_core = double_alignment.fwd_read[fwd_start : fwd_start + len(self.seq)]
+
+        rev_end = double_alignment.rev_align.extract_barcode(0, len(self.seq)).stop
+        rev_core = double_alignment.rev_read[rev_end - len(self.seq) : rev_end]
 
         self_score = self.sw.align(fwd_core, reverse_compliment(rev_core)).nScore
-
         self.scores[
             double_alignment.fwd_align.nScore,
             double_alignment.rev_align.nScore,

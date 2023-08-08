@@ -30,7 +30,7 @@ def derep(
     FASTQ_directory: Path,
     sgRNA_file: Path = Path("sgRNA_info.csv"),
     master_read: str = default_master_read,
-    min_align_score: float = 0.75,
+    min_align_score: float = 0.5,
     mismatches_tolerated: int = 1,
 ):
     """Extracts TuBa-seq double barcodes from Paired-End (PE) FASTQ reads & dereplicates
@@ -68,7 +68,7 @@ def derep(
     for fwd_dna, rev_dna in FASTQ_iter:
 
         double_alignment = master_read.align(fwd_dna, rev_dna)
-        master_read.count_scores(double_alignment)
+        master_read.tally_score(double_alignment)
         if double_alignment.score <= min_int_score:
             poor_alignment += 1
             continue
@@ -92,6 +92,10 @@ def derep(
     scores.index.names = ["Fwd-Ref", "Rev-Ref", "Fwd-Rev"]
     scores.to_csv(FASTQ_directory / "scores.csv")
 
+    pileups = pd.Series(pileups, name="reads")
+    pileups.index.names = "target", "barcode"
+    pileups.to_csv(FASTQ_directory / "pileups.csv")
+
     read_tallies = pd.Series(
         [
             poor_alignment,
@@ -106,10 +110,6 @@ def derep(
         name="reads",
     )
     read_tallies.to_csv(FASTQ_directory / "outcomes.csv")
-
-    pileups = pd.Series(pileups, name="reads")
-    pileups.index.names = "target", "barcode"
-    pileups.to_csv(FASTQ_directory / "pileups.csv")
 
 
 if __name__ == "__main__":

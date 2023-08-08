@@ -1,12 +1,21 @@
+#!/usr/bin/env python3
 """
 
 Questions-Evidence (E) pairs:
 ------------------
 
+1. Histograms of 3-ref pairs
+
+2. Fwd-Rev versus Combined; 
+
+Combined vs. Singleton 
+Combined vs. Fwd-Rev
+
 1. Is [forward/reverse] sequencing quality good?
     E: Forward reads match reverse?
        Forward reads match reference?
        Reverse reads match reference?
+
 
 2. Is the library Amplicon?
     E: High unaligned rate -> contamination
@@ -38,28 +47,41 @@ sgID % (2-ways)
 import seaborn as sns
 import pandas as pd
 import numpy as np
+from matplotlib import pyplot as plt
 
 N_plots = 5
 
+score_pairs = ["Fwd-Ref", "Rev-Ref", "Fwd-Rev"]
+scores = pd.read_csv(
+    "consolidated_scores.csv", index_col=["sample"] + score_pairs, dtype=np.uint64
+)["reads"]
 
-base_scores = pd.DataFrame({
-    'Fwd-Ref':scores.sum(axis=2).sum(axis=1),
-    'Rev-Ref':scores.sum(axis=2).sum(axis=0),
-    'Fwd-Rev':scores.sum(axis=1).sum(axis=0)
-}, index=pd.Index(np.linspace(0, 1, len(scores), name='score'))
+# print(scores, scores.describe(), len(scores)/len(scores.dropna()))
+base_scores = pd.DataFrame(
+    {name: scores.groupby(level=name).sum() for name in score_pairs}
 )
-base_scores.columns.name = 'alignment'
+print(base_scores.describe(), len(base_scores) / len(base_scores.dropna()))
+# .astype(int)
+base_scores.index = pd.Index(np.linspace(0, 1, len(base_scores)), name="score")
+base_scores.columns.name = "alignment"
+longform = base_scores.stack()
+longform.name = "reads"
 
-composite_scores = np.zeros(2*len(scores) - 1, dtype=np.int64)
-for fwd_score, row in enumerate(scores.sum(axis=2)):
-    for rev_score, reads in enumerate(row)]):
-        composite_score[fwd_score+rev_score] += reads
+print(base_scores)
 
-longform = pd.concat(dict(
-    base=base_scores.stack(),
-    composite=pd.Series(composite_scores, index=pd.Index(np.linspace(0, 1, len(composite_scores), name='score')))),
-    names=['Class']
+sns.histplot(
+    data=longform.reset_index(),
+    x="score",
+    y="reads",
+    discrete=True,
+    hue="alignment",
+    stat="percent",
+    # multiple="dodge",
+    hue_order=score_pairs,
+    ax=plt.gca(),
 )
-sns.histplot(data=base_scores.stack().reset_index(), x='score', y='reads', discrete=True, hue='alignment', stat='percent', multiple='dodge', 
-    hue_order=['Fwd-Ref', 'Rev-Ref', 'Fwd-Rev'])
+plt.savefig("Alignments.pdf")
 
+
+ref_scores = scores.groupby(level=["Fwd-Ref", "Rev-Ref"]).sum()
+composite_scores = ref_scores.groupby(lambda ix: ix[0] + ix[1]).sum()

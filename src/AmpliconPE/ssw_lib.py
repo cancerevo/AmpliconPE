@@ -6,6 +6,7 @@ By Yongan Zhao (March 2016)
 """
 
 import ctypes as ct
+import numpy as np
 
 ###############################################################################
 ## load libssw (Chris' extension - very buggy)
@@ -38,8 +39,20 @@ def get_libssw_path():
 
 c_extension = ct.cdll.LoadLibrary(get_libssw_path())
 
+o_N = ord(b"N")
+o_gap = ord(b"-")
+
 ###############################################################################
 ###############################################################################
+
+
+def buffer_merge(qry, ref):
+    """buffer_merge(qry, ref) -> Performant consensus sequence of equal-length byte-strings with mismatches replaced by 'N'"""
+    if qry == ref:
+        return qry
+    qry_buffer = np.frombuffer(qry, dtype=np.uint8)
+    ref_buffer = np.frombuffer(ref, dtype=np.uint8)
+    return np.where(qry_buffer != ref_buffer, o_N, qry_buffer).tobytes()
 
 
 class CAlignRes(ct.Structure):
@@ -111,6 +124,58 @@ class CAlignRes(ct.Structure):
 
         return b"".join(sQ), b"".join(sR)
 
+    def build_consensus(self, query, reference, expected_length):
+        """
+        Build consensus sequence from query/reference pair.
+
+        Replaces mismatch bases with 'N', and includes Insertions/Deletions if they
+        bring the consensus sequence closer to the `expected_length`.
+        """
+        sCigarInfo = b"MIDNSHP=X"
+        consensus = []
+        nQOff = self.nQryBeg
+        nROff = self.nRefBeg
+
+        print("here")
+
+        max_length = sum([self.sCigar[idx] >> 4 for idx in range(self.nCigarLen)])
+        too_long = max_length > expected_length
+
+        print(self.sCigar)
+        print(max_length)
+        print(too_long)
+
+        for idx in range(self.nCigarLen):
+            x = self.sCigar[idx]
+            n = x >> 4
+            m = x & 15
+            c = 77 if m > 8 else sCigarInfo[m]
+
+            if c == 77:  #'M' = match
+                consensus.append(
+                    buffer_merge(query[nQOff : nQOff + n], reference[nROff : nROff + n])
+                )
+                nQOff += n
+                nROff += n
+            elif c == 73:  #'I' = query insertion
+                if too_long:
+                    max_length -= n
+                    too_long = max_length > expected_length
+                else:
+                    consensus.append(query[nQOff : nQOff + n])
+                nQOff += n
+            elif c == 68:  #'D' = query deletion
+                if too_long:
+                    max_length -= n
+                    too_long = max_length > expected_length
+                else:
+                    consensus.append(reference[nROff : nROff + n])
+                nROff += n
+            else:
+                raise ValueError("Invalid Cigar Annotation ({:})".format(c))
+
+        return b"".join(consensus)
+
     def extract_barcode(self, barcode_start, barcode_stop):
         sCigarInfo = b"MIDNSHP=X"
         dBeg = self.nQryBeg - self.nRefBeg
@@ -153,6 +218,9 @@ class CAlignRes(ct.Structure):
             barcode_start + dBeg + dRef_pre_start,
             barcode_stop + dBeg + dRef_barcode + dRef_pre_start,
         )
+
+    def query_core(self):
+        return slice(self.nQryBeg, self.nQryEnd + 1)
 
 
 class CProfile(ct.Structure):
@@ -284,9 +352,6 @@ class CSsw(object):
 
 
 ssw = CSsw()
-
-o_N = ord(b"N")
-o_gap = ord(b"-")
 
 
 class SW(object):
