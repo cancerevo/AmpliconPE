@@ -1,16 +1,16 @@
 #!/bin/bash
 set -ex 
 
-AmpliconPEDir=$HOME/AmpliconPE
-DataDir=$AmpliconPEDir/data
-
+base_dir=$HOME/AmpliconPE
+data_dir=$base_dir/data
+master_read='GGGACCCGGANNNNNNNNAANNNNNTTNNNNNAANNNNNATGCCCAAGA'
 #for dir in $DataDir/TuBa-seq_FASTQs/*; 
 #do
 #    $AmpliconPEDir/bin/TuBa-seq.py --sgRNA_file $DataDir/sgRNA_info.csv $dir;
 #done
 
-ls -d $DataDir/TuBa-seq_FASTQs/* | parallel "$AmpliconPEDir/bin/TuBa-seq.py --sgRNA_file $DataDir/sgRNA_info.csv {}" 
+ls -d $data_dir/TuBa-seq_FASTQs/* | parallel "$base_dir/bin/derep.py $master_read --sgRNA_file $data_dir/sgRNA_info.csv {}" 
 
-$AmpliconPEDir/bin/consolidate.py $DataDir/TuBa-seq_FASTQs;
+$base_dir/bin/consolidate.py $data_dir/TuBa-seq_FASTQs;
 
 

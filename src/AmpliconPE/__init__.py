@@ -219,7 +219,7 @@ Reverted Rev Cigar {self.rev_align.nScore}/{self.master_read.max_score/2}:
 
 
 class SimplexAlignment(object):
-    score_pairs = ["Fwd-Ref", "Rev-Ref", "Fwd-Rev", "Core-Ref"]
+    align_pairs = ["Fwd-Ref", "Rev-Ref", "Fwd-Rev", "Core-Ref"]
 
     def __init__(self, fwd_read, rev_read, master_read):
         self.fwd_align = master_read.sw.align(fwd_read, master_read.seq)
@@ -231,12 +231,10 @@ class SimplexAlignment(object):
 
         self.fwd_core = fwd_read[self.fwd_align.query_core()]
         self.rev_core = reverse_compliment(rev_read[self.rev_align.query_core()])
-
         self.core_align = master_read.sw.align(self.fwd_core, self.rev_core)
         self.core_consensus = self.core_align.build_consensus(
             self.fwd_core, self.rev_core, len(master_read.seq)
         )
-
         self.final_align = master_read.sw.align(
             self.core_consensus, master_read.core_seq
         )
@@ -253,7 +251,7 @@ class SimplexAlignment(object):
     def extract_barcode(self):
         return self.core_consensus[
             self.final_align.extract_barcode(
-                self.master_read.barcode_start, self.master_read.barcode_stop
+                self.master_read.core_barcode_start, self.master_read.core_barcode_stop
             )
         ].decode("ascii")
 
@@ -264,12 +262,14 @@ class MasterRead(object):
     def align(self, fwd_read, rev_read):
         return DoubleAlignment(fwd_read, rev_read, self)
 
-    def __init__(self, seq, trim_fraction=0.6, **alignment_params):
+    def __init__(self, seq, trim_fraction=0.75, **alignment_params):
         seq = seq.encode("ascii") if type(seq) == str else seq
         self.seq = seq
 
         self.alignment_params.update(alignment_params)
 
+        if not b"N" in seq:
+            raise ValueError(f"No barcode found in {seq}.")
         self.barcode_start = seq.index(b"N")
         self.barcode_stop = seq.rindex(b"N") + 1
         self.reverse_compliment = reverse_compliment(seq)
@@ -281,6 +281,9 @@ class MasterRead(object):
             len(seq) + 1 - int((len(seq) + 1 - self.barcode_stop) * trim_fraction)
         )
         self.core_seq = seq[self.core_start : self.core_stop]
+
+        self.core_barcode_start = self.barcode_start - self.core_start
+        self.core_barcode_stop = self.barcode_stop - self.core_start
 
         self.sw = SW(**self.alignment_params)
 

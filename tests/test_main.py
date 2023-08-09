@@ -27,23 +27,29 @@ def test_pairedFASTQiter():
     assert rev_read == real_rev_read
 
 
+read = 2 * "ACGT" + 2 * "NNNNAA" + "AACCGGTT"
+alignment_params = dict(match=6, mismatch=-2, gap_open=6, gap_extend=1)
+
+fwd_read = read.encode("ascii")
+rev_read = reverse_compliment(fwd_read)
+
+perfect_seq_pair = fwd_read.replace(b"N", b"T"), rev_read.replace(b"N", b"A")
+perfect_barcode = "TTTTAATTTT"
+
+
+imperfect_seq_pair = (fwd_read[:4] + fwd_read[5:]).replace(b"N", b"T"), (
+    rev_read[:-3] + b"A" + rev_read[-2:]
+).replace(b"N", b"T")
+
+imperfect_barcode_error = "NNNAANNNNA"
+perfect_imperfect_barcode = "NNNNAANNNN"
+
+
 def test_MasterRead():
-    read = 2 * "ACGT" + 2 * "NNNNAA" + 2 * "ACGT"
-    alignment_params = dict(match=6, mismatch=-2, gap_open=6, gap_extend=1)
-    master_read = MasterRead(read, **alignment_params)
-
-    fwd_read = read.encode("ascii")
-    rev_read = reverse_compliment(fwd_read)
-
-    perfect_seq_pair = fwd_read.replace(b"N", b"T"), rev_read.replace(b"N", b"A")
-    perfect_barcode = "TTTTAATTTT"
     perfect_score = 240
-
-    imperfect_seq_pair = (fwd_read[:4] + fwd_read[5:]).replace(b"N", b"T"), (
-        rev_read[:-3] + b"A" + rev_read[-2:]
-    ).replace(b"N", b"T")
     imperfect_score = 220
 
+    master_read = MasterRead(read, **alignment_params)
     assert master_read.max_score == perfect_score
 
     perfect_alignment = master_read.align(*perfect_seq_pair)
@@ -52,12 +58,25 @@ def test_MasterRead():
 
     imperfect_alignment = master_read.align(*imperfect_seq_pair)
     assert imperfect_alignment.final_score == imperfect_score
-    assert imperfect_alignment.extract_barcode() == "NNNAANNNNA"
+    assert imperfect_alignment.extract_barcode() == imperfect_barcode_error
 
-    simplex_master_read = SimplexMasterRead(read, **alignment_params)
-    perfect_simplex_alignment = simplex_master_read.align(*perfect_seq_pair)
-    assert perfect_simplex_alignment.get_scores() == (120, 120, 168, 66)
-    assert perfect_simplex_alignment.extract_barcode() == perfect_barcode
+
+def test_simplexMasterRead():
+    perfect_scores = (120, 120, 168, 42)
+    imperfect_score = 42
+    master_read = SimplexMasterRead(read, **alignment_params)
+    perfect_alignment = master_read.align(*perfect_seq_pair)
+
+    assert perfect_alignment.fwd_read == perfect_seq_pair[0]
+    assert perfect_alignment.rev_read == perfect_seq_pair[1]
+    assert perfect_alignment.core_consensus == perfect_seq_pair[0]
+
+    assert perfect_alignment.get_scores() == perfect_scores
+    assert perfect_alignment.extract_barcode() == perfect_barcode
+
+    imperfect_alignment = master_read.align(*imperfect_seq_pair)
+    assert imperfect_alignment.final_score == imperfect_score
+    assert imperfect_alignment.extract_barcode() == perfect_imperfect_barcode
 
 
 def test_BarcodeSet():
