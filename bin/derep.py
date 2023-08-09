@@ -32,19 +32,11 @@ def derep(FASTQ_directory: Path, master_read: str, trim_fraction: float = 0.6):
         pileups[(alignment.final_score, alignment.extract_barcode())] += 1
 
     ## Output
-    max_scores = master_read.self_alignment.get_scores()
 
+    align_pairs = master_read.self_alignment.align_pairs
     score_series = pd.Series(
         scores.values(),
-        index=pd.MultiIndex.from_tuples(
-            scores.keys(),
-            names=[
-                f"{name} (max={max_score})"
-                for name, max_score in zip(
-                    master_read.self_alignment.align_pairs, max_scores
-                )
-            ],
-        ),
+        index=pd.MultiIndex.from_tuples(scores.keys(), names=align_pairs),
         name="reads",
     )
 
@@ -53,11 +45,16 @@ def derep(FASTQ_directory: Path, master_read: str, trim_fraction: float = 0.6):
     pileups = pd.Series(
         pileups.values(),
         name="reads",
-        index=pd.MultiIndex.from_tuples(
-            pileups.keys(), names=[f"score (max={master_read.max_score})", "barcode"]
-        ),
+        index=pd.MultiIndex.from_tuples(pileups.keys(), names=["score", "barcode"]),
     )
     pileups.to_csv(FASTQ_directory / "pileups.csv")
+    info = pd.Series(
+        master_read.self_alignment.get_scores(),
+        index=pd.Index(align_pairs, name="alignment"),
+        name="max_value",
+    )
+    info["Index Mismatches"] = FASTQ_iter.index_mismatches
+    info.to_csv(FASTQ_directory / "info.csv")
 
 
 if __name__ == "__main__":
