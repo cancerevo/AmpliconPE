@@ -1,5 +1,6 @@
 from AmpliconPE import (
     MasterRead,
+    SimplexMasterRead,
     BarcodeSet,
     pairedFASTQiter,
     reverse_compliment,
@@ -46,15 +47,16 @@ def test_MasterRead():
     assert master_read.max_score == perfect_score
 
     perfect_alignment = master_read.align(*perfect_seq_pair)
-    assert perfect_alignment.score == master_read.max_score
+    assert perfect_alignment.final_score == master_read.max_score
     assert perfect_alignment.extract_barcode() == perfect_barcode
 
     imperfect_alignment = master_read.align(*imperfect_seq_pair)
-    assert imperfect_alignment.score == imperfect_score
+    assert imperfect_alignment.final_score == imperfect_score
     assert imperfect_alignment.extract_barcode() == "NNNAANNNNA"
 
-    perfect_simplex_alignment = master_read.simplex_align(*perfect_seq_pair)
-    assert perfect_simplex_alignment.get_scores() == (120, 120, 168, 120)
+    simplex_master_read = SimplexMasterRead(read, **alignment_params)
+    perfect_simplex_alignment = simplex_master_read.align(*perfect_seq_pair)
+    assert perfect_simplex_alignment.get_scores() == (120, 120, 168, 66)
     assert perfect_simplex_alignment.extract_barcode() == perfect_barcode
 
 

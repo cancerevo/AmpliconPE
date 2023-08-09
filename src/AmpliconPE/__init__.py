@@ -166,6 +166,11 @@ Use BarcodeSet(robust=True) if you would like non-unique mismatches to map to a 
 
 
 class DoubleAlignment(object):
+    score_pairs = ["Fwd-Ref", "Rev-Ref"]
+
+    def get_scores(self):
+        return self.fwd_align.nScore, self.rev_align.nScore
+
     def __init__(self, fwd_read, rev_read, master_read):
         self.fwd_align = master_read.sw.align(fwd_read, master_read.seq)
         self.rev_align = master_read.sw.align(rev_read, master_read.reverse_compliment)
@@ -173,8 +178,7 @@ class DoubleAlignment(object):
         self.fwd_read = fwd_read
         self.rev_read = rev_read
         self.master_read = master_read
-
-        self.score = self.fwd_align.nScore + self.rev_align.nScore
+        self.final_score = self.fwd_align.nScore + self.rev_align.nScore
 
     def print_cigars(self):
         fwd_cigar = self.fwd_align.build_cigar(self.fwd_read, self.master_read.seq)
@@ -215,6 +219,8 @@ Reverted Rev Cigar {self.rev_align.nScore}/{self.master_read.max_score/2}:
 
 
 class SimplexAlignment(object):
+    score_pairs = ["Fwd-Ref", "Rev-Ref", "Fwd-Rev", "Core-Ref"]
+
     def __init__(self, fwd_read, rev_read, master_read):
         self.fwd_align = master_read.sw.align(fwd_read, master_read.seq)
         self.rev_align = master_read.sw.align(rev_read, master_read.reverse_compliment)
@@ -231,7 +237,10 @@ class SimplexAlignment(object):
             self.fwd_core, self.rev_core, len(master_read.seq)
         )
 
-        self.final_align = master_read.sw.align(self.core_consensus, master_read.seq)
+        self.final_align = master_read.sw.align(
+            self.core_consensus, master_read.core_seq
+        )
+        self.final_score = self.final_align.nScore
 
     def get_scores(self):
         return (
@@ -240,9 +249,6 @@ class SimplexAlignment(object):
             self.core_align.nScore,
             self.final_align.nScore,
         )
-
-    def get_final_score(self):
-        return self.final_align.nScore
 
     def extract_barcode(self):
         return self.core_consensus[
@@ -258,30 +264,36 @@ class MasterRead(object):
     def align(self, fwd_read, rev_read):
         return DoubleAlignment(fwd_read, rev_read, self)
 
-    def simplex_align(self, fwd_read, rev_read):
-        return SimplexAlignment(fwd_read, rev_read, self)
+    def __init__(self, seq, trim_fraction=0.6, **alignment_params):
+        seq = seq.encode("ascii") if type(seq) == str else seq
+        self.seq = seq
 
-    def __init__(self, seq, **alignment_params):
-        self.seq = seq.encode("ascii") if type(seq) == str else seq
         self.alignment_params.update(alignment_params)
 
-        self.barcode_start = self.seq.index(b"N")
-        self.barcode_stop = self.seq.rindex(b"N") + 1
-        self.reverse_compliment = reverse_compliment(self.seq)
+        self.barcode_start = seq.index(b"N")
+        self.barcode_stop = seq.rindex(b"N") + 1
+        self.reverse_compliment = reverse_compliment(seq)
         self.rc_start = self.reverse_compliment.index(b"N")
         self.rc_stop = self.reverse_compliment.rindex(b"N") + 1
 
+        self.core_start = int(trim_fraction * self.barcode_start)
+        self.core_stop = (
+            len(seq) + 1 - int((len(seq) + 1 - self.barcode_stop) * trim_fraction)
+        )
+        self.core_seq = seq[self.core_start : self.core_stop]
+
         self.sw = SW(**self.alignment_params)
-        self.self_alignment = self.align(self.seq, self.reverse_compliment)
-        self.max_score = self.self_alignment.score
 
         perfect_barcode = self.seq.replace(b"N", b"A")
-        self.max_simplex_scores = np.array(
-            self.simplex_align(
-                perfect_barcode, reverse_compliment(perfect_barcode)
-            ).get_scores(),
-            dtype=np.uint64,
+        self.self_alignment = self.align(
+            perfect_barcode, reverse_compliment(perfect_barcode)
         )
+        self.max_score = self.self_alignment.final_score
+
+
+class SimplexMasterRead(MasterRead):
+    def align(self, fwd_read, rev_read):
+        return SimplexAlignment(fwd_read, rev_read, self)
 
 
 class logPrint(object):
