@@ -49,6 +49,7 @@ import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 
+
 N_plots = 5
 
 score_pairs = ["Fwd-Ref", "Rev-Ref", "Fwd-Rev"]
@@ -69,14 +70,13 @@ longform.name = "reads"
 
 print(base_scores)
 
-sns.histplot(
+
+sns.ecdfplot(
     data=longform.reset_index(),
     x="score",
-    y="reads",
-    discrete=True,
+    weights="reads",
     hue="alignment",
-    stat="percent",
-    # multiple="dodge",
+    stat="count",
     hue_order=score_pairs,
     ax=plt.gca(),
 )

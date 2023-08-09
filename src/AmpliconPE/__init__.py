@@ -275,29 +275,13 @@ class MasterRead(object):
         self.self_alignment = self.align(self.seq, self.reverse_compliment)
         self.max_score = self.self_alignment.score
 
-        # Setup score matrix
-        seq_no_Ns = self.seq.replace(b"N", b"A")
-        max_self_score = self.sw.align(seq_no_Ns, seq_no_Ns).nScore + 1
-        max_ref_score = (self.max_score // 2) + 1
-        self.scores = np.zeros(
-            (max_ref_score, max_ref_score, max_self_score), dtype=np.uint64
+        perfect_barcode = self.seq.replace(b"N", b"A")
+        self.max_simplex_scores = np.array(
+            self.simplex_align(
+                perfect_barcode, reverse_compliment(perfect_barcode)
+            ).get_scores(),
+            dtype=np.uint64,
         )
-
-    def tally_score(self, double_alignment):
-        """Probably deprecate -> easier to count 'N' bases in pileups than to look at a wider fwd-rev match"""
-
-        fwd_start = double_alignment.fwd_align.extract_barcode(0, -1).start
-        fwd_core = double_alignment.fwd_read[fwd_start : fwd_start + len(self.seq)]
-
-        rev_end = double_alignment.rev_align.extract_barcode(0, len(self.seq)).stop
-        rev_core = double_alignment.rev_read[rev_end - len(self.seq) : rev_end]
-
-        self_score = self.sw.align(fwd_core, reverse_compliment(rev_core)).nScore
-        self.scores[
-            double_alignment.fwd_align.nScore,
-            double_alignment.rev_align.nScore,
-            self_score,
-        ] += 1
 
 
 class logPrint(object):

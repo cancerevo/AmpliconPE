@@ -5,9 +5,9 @@ from jsonargparse import CLI
 from pathlib import Path
 from AmpliconPE import MasterRead, BarcodeSet, pairedFASTQiter, get_PE_FASTQs
 from collections import Counter
-import numpy as np
 
-FLANK_LENGTH = 8
+FLANK_LENGTH = 10
+
 full_amplicon = "".join(
     (
         "GCGCACGTCTGCCGCGCTGTTCTCCTCTTCCTCATCTCCGGGACCCGGA",  # forward flank
@@ -22,8 +22,6 @@ default_master_read = full_amplicon[
     + 1
     + FLANK_LENGTH
 ].replace(".", "N")
-
-OUTPUT_TABLES = "stats", "scores", "pileups"
 
 
 def derep(
@@ -47,7 +45,10 @@ def derep(
     sgRNA_file = Path(sgRNA_file)
 
     sg_info = pd.read_csv(sgRNA_file, converters={"ID": str.upper})
-    sgID_length = int(sg_info["ID"].str.len().median())
+
+    sgID_lengths = sg_info["ID"].str.len()
+    sgID_length = sgID_lengths[0]
+    assert (sgID_lengths == sgID_length).all(), "sgIDs must be equal length."
 
     sgRNA_map = BarcodeSet(
         sg_info.set_index("ID")["target"],
@@ -58,24 +59,25 @@ def derep(
     sgRNA_map.pop_nonunique()
 
     master_read = MasterRead(master_read)
+    max_scores = master_read.max_simplex_scores
 
     pileups = Counter()
-    min_int_score = int(min_align_score * master_read.max_score)
-    poor_alignment = 0
+    scores = Counter()
+
+    min_int_score = int(min_align_score * max_scores[-1])
 
     file_pair = get_PE_FASTQs(FASTQ_directory)
     FASTQ_iter = pairedFASTQiter(*file_pair)
     for fwd_dna, rev_dna in FASTQ_iter:
 
-        double_alignment = master_read.align(fwd_dna, rev_dna)
-        master_read.tally_score(double_alignment)
-        if double_alignment.score <= min_int_score:
-            poor_alignment += 1
+        simplex_alignment = master_read.simplex_align(fwd_dna, rev_dna)
+        score_set = simplex_alignment.get_scores()
+        scores[score_set] += 1
+
+        if score_set[-1] <= min_int_score:
             continue
 
-        barcode = double_alignment.extract_barcode()
-        if barcode == "Length Mismatch":
-            continue
+        barcode = simplex_alignment.extract_barcode()
 
         known_barcode = barcode[:sgID_length]
         sgRNA_target = sgRNA_map.get(known_barcode, "Unknown Target")
@@ -86,30 +88,33 @@ def derep(
     ## Output
 
     scores = pd.Series(
-        {score_trio: reads for score_trio, reads in np.ndenumerate(master_read.scores)},
+        {
+            tuple((idx / max_i for idx, max_i in zip(idxs, max_scores))): counts
+            for idxs, counts in scores.items()
+        },
         name="reads",
     )
-    scores.index.names = ["Fwd-Ref", "Rev-Ref", "Fwd-Rev"]
+
+    scores.index.names = ["Fwd-Ref", "Rev-Ref", "Fwd-Rev", "Core-Ref"]
+
     scores.to_csv(FASTQ_directory / "scores.csv")
 
     pileups = pd.Series(pileups, name="reads")
     pileups.index.names = "target", "barcode"
     pileups.to_csv(FASTQ_directory / "pileups.csv")
 
-    read_tallies = pd.Series(
-        [
-            poor_alignment,
-            pileups.sum() - poor_alignment,
-            FASTQ_iter.index_mismatches,
-            pileups.sum(),
-        ],
-        pd.Index(
-            ["Poor Alignment", "Length Mismatch", "Index Mismatches", "Passed"],
-            name="Outcome",
-        ),
+    final_marginal = scores.groupby(level="Core-Ref").sum()
+    outcomes = pd.Series(
+        {
+            "Poor Alignment": final_marginal.loc[:min_align_score].sum(),
+            "Index Mismatches": FASTQ_iter.index_mismatches,
+            "Passed": pileups.sum(),
+            "Unknown Target": pileups.loc["Unknown Target"].sum(),
+        },
         name="reads",
     )
-    read_tallies.to_csv(FASTQ_directory / "outcomes.csv")
+    outcomes.index.names = ["outcome"]
+    outcomes.to_csv(FASTQ_directory / "outcomes.csv")
 
 
 if __name__ == "__main__":

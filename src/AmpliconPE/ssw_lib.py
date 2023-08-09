@@ -136,14 +136,8 @@ class CAlignRes(ct.Structure):
         nQOff = self.nQryBeg
         nROff = self.nRefBeg
 
-        print("here")
-
         max_length = sum([self.sCigar[idx] >> 4 for idx in range(self.nCigarLen)])
         too_long = max_length > expected_length
-
-        print(self.sCigar)
-        print(max_length)
-        print(too_long)
 
         for idx in range(self.nCigarLen):
             x = self.sCigar[idx]
