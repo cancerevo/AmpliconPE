@@ -1,4 +1,4 @@
-Fwd-Ref (max=52),Rev-Ref (max=52),Fwd-Rev (max=98),Core-Ref (max=30),reads
+fwd-ref,rev-ref,fwd-rev,core-ref,reads
 22,18,42,12,22
 52,24,40,12,19
 52,42,88,28,10

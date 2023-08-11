@@ -166,7 +166,7 @@ Use BarcodeSet(robust=True) if you would like non-unique mismatches to map to a 
 
 
 class DoubleAlignment(object):
-    score_pairs = ["Fwd-Ref", "Rev-Ref"]
+    score_pairs = ["fwd-ref", "rev-ref"]
 
     def get_scores(self):
         return self.fwd_align.nScore, self.rev_align.nScore
@@ -219,7 +219,7 @@ Reverted Rev Cigar {self.rev_align.nScore}/{self.master_read.max_score/2}:
 
 
 class SimplexAlignment(object):
-    align_pairs = ["Fwd-Ref", "Rev-Ref", "Fwd-Rev", "Core-Ref"]
+    align_pairs = ["fwd-ref", "rev-ref", "fwd-rev", "core-ref"]
 
     def __init__(self, fwd_read, rev_read, master_read):
         self.fwd_align = master_read.sw.align(fwd_read, master_read.seq)
