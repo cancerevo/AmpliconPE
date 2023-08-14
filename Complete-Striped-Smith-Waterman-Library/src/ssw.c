@@ -793,7 +793,8 @@ s_profile* ssw_init (const int8_t* read, const int32_t readLen, const int8_t* ma
 }
 
 void init_destroy (s_profile* p) {
-	free(p->profile_byte);
+	printf("Executing init_destroy.");
+    free(p->profile_byte);
 	free(p->profile_word);
 	free(p);
 }
@@ -891,7 +892,8 @@ end:
 }
 
 void align_destroy (s_align* a) {
-	free(a->cigar);
+	printf("Executing align_destroy");
+    free(a->cigar);
 	free(a);
 }
 

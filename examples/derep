@@ -1,12 +1,14 @@
 #!/bin/bash
 set -ex 
 
-base_dir=$HOME/AmpliconPE
-data_dir=$base_dir/data
+base_dir=$HOME/AmpliconPE/
+bin_dir=$base_dir/bin/
+data_dir=$base_dir/data/
+TuBa_FASTQs=$data_dir/TuBa-seq_FASTQs/
 TuBa_master_read='GGGACCCGGANNNNNNNNAANNNNNTTNNNNNAANNNNNATGCCCAAGA'
 
-ls -d $data_dir/TuBa-seq_FASTQs/* | parallel "$base_dir/bin/derep.py {} $TuBa_master_read"
+ls -d $TuBa_FASTQs/* | parallel "$bin_dir/derep.py {} $TuBa_master_read"
 
-$base_dir/bin/consolidate.py $data_dir/TuBa-seq_FASTQs;
+$bin_dir/consolidate.py $TuBa_FASTQs;
 
 

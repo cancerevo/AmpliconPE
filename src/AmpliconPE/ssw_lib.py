@@ -85,6 +85,10 @@ class CAlignRes(ct.Structure):
     ]
 
     def __dalloc__(self):
+        print("__dalloc__ align destroy")
+        ssw.align_destroy(self)
+
+    def __del__(self):
         ssw.align_destroy(self)
 
     def build_cigar(self, query, reference):
@@ -240,6 +244,10 @@ class CProfile(ct.Structure):
     ]
 
     def __dalloc__(self):
+        print("__dalloc__ align_destroy")
+        ssw.align_destroy(self)
+
+    def __del__(self):
         ssw.align_destroy(self)
 
 
@@ -350,9 +358,11 @@ ssw = CSsw()
 
 class SW(object):
     def __dealloc__(self):
+        print("__dealloc__ SW Object")
         ssw.init_destroy(self.qProfile)
 
     def __del__(self):
+        print("__del__ SW Object")
         ssw.init_destroy(self.qProfile)
 
     def __init__(self, match=4, mismatch=2, gap_open=6, gap_extend=1):
