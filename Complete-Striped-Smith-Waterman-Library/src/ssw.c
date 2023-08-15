@@ -793,7 +793,6 @@ s_profile* ssw_init (const int8_t* read, const int32_t readLen, const int8_t* ma
 }
 
 void init_destroy (s_profile* p) {
-	printf("Executing init_destroy.");
     free(p->profile_byte);
 	free(p->profile_word);
 	free(p);
@@ -808,7 +807,6 @@ s_align* ssw_align (const s_profile* prof,
 					const uint16_t filters,
 					const int32_t filterd,
 					const int32_t maskLen) {
-
 	alignment_end* bests = 0, *bests_reverse = 0;
 	__m128i* vP = 0;
 	int32_t word = 0, band_width = 0, readLen = prof->readLen;
@@ -892,7 +890,6 @@ end:
 }
 
 void align_destroy (s_align* a) {
-	printf("Executing align_destroy");
     free(a->cigar);
 	free(a);
 }

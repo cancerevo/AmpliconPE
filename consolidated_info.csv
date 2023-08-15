@@ -1,31 +1,31 @@
 sample,alignment,max_value
-79,fwd-ref,52
-79,rev-ref,52
-79,fwd-rev,98
-79,core-ref,30
-79,Index Mismatches,0
-78,fwd-ref,52
-78,rev-ref,52
-78,fwd-rev,98
-78,core-ref,30
-78,Index Mismatches,0
-76,fwd-ref,52
-76,rev-ref,52
-76,fwd-rev,98
-76,core-ref,30
-76,Index Mismatches,0
-77,fwd-ref,52
-77,rev-ref,52
-77,fwd-rev,98
-77,core-ref,30
-77,Index Mismatches,0
-80,fwd-ref,52
-80,rev-ref,52
-80,fwd-rev,98
-80,core-ref,30
+80,fwd-ref,104
+80,rev-ref,104
+80,fwd-rev,196
+80,core-ref,60
 80,Index Mismatches,0
-81,fwd-ref,52
-81,rev-ref,52
-81,fwd-rev,98
-81,core-ref,30
+81,fwd-ref,104
+81,rev-ref,104
+81,fwd-rev,196
+81,core-ref,60
 81,Index Mismatches,0
+76,fwd-ref,104
+76,rev-ref,104
+76,fwd-rev,196
+76,core-ref,60
+76,Index Mismatches,0
+77,fwd-ref,104
+77,rev-ref,104
+77,fwd-rev,196
+77,core-ref,60
+77,Index Mismatches,0
+79,fwd-ref,104
+79,rev-ref,104
+79,fwd-rev,196
+79,core-ref,60
+79,Index Mismatches,0
+78,fwd-ref,104
+78,rev-ref,104
+78,fwd-rev,196
+78,core-ref,60
+78,Index Mismatches,0

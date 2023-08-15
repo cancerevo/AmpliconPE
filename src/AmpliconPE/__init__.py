@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from .ssw_lib import SW, buffer_merge
+from .aligner import Aligner, buffer_merge
 import numpy as np
 from datetime import datetime
 
@@ -169,47 +169,41 @@ class DoubleAlignment(object):
     score_pairs = ["fwd-ref", "rev-ref"]
 
     def get_scores(self):
-        return self.fwd_align.nScore, self.rev_align.nScore
+        return self.fwd_align.score, self.rev_align.score
 
     def __init__(self, fwd_read, rev_read, master_read):
-        self.fwd_align = master_read.sw.align(fwd_read, master_read.seq)
-        self.rev_align = master_read.sw.align(rev_read, master_read.reverse_compliment)
+        self.fwd_align = master_read.aligner.align(fwd_read, master_read.seq)
+        self.rev_align = master_read.aligner.align(
+            rev_read, master_read.reverse_compliment
+        )
 
         self.fwd_read = fwd_read
         self.rev_read = rev_read
         self.master_read = master_read
-        self.final_score = self.fwd_align.nScore + self.rev_align.nScore
+        self.final_score = self.fwd_align.score + self.rev_align.score
 
-    def print_cigars(self):
-        fwd_cigar = self.fwd_align.build_cigar(self.fwd_read, self.master_read.seq)
-        rev_cigar = self.rev_align.build_cigar(
-            self.rev_read, self.master_read.reverse_compliment
-        )
+    def __str__(self):
+        fwd_cigar = self.fwd_align.build_cigar()
+        rev_cigar = self.rev_align.build_cigar()
 
-        print(
-            f"""Fwd Cigar {self.fwd_align.nScore}/{self.master_read.max_score/2}:
+        return f"""Fwd Cigar {self.fwd_align.score}/{self.master_read.max_score/2}:
 --------
 {fwd_cigar[0]}
 {fwd_cigar[1]}
-Reverted Rev Cigar {self.rev_align.nScore}/{self.master_read.max_score/2}:
+Reverted Rev Cigar {self.rev_align.score}/{self.master_read.max_score/2}:
 -----------------------
 {reverse_compliment(rev_cigar[0])}
 {reverse_compliment(rev_cigar[1])}
 """
-        )
 
     def extract_barcode(self):
-        fwd_bc = self.fwd_read[
-            self.fwd_align.extract_barcode(
-                self.master_read.barcode_start, self.master_read.barcode_stop
-            )
-        ]
+        fwd_bc = self.fwd_align.extract_barcode(
+            self.master_read.barcode_start, self.master_read.barcode_stop
+        )
         rev_bc = reverse_compliment(
-            self.rev_read[
-                self.rev_align.extract_barcode(
-                    self.master_read.rc_start, self.master_read.rc_stop
-                )
-            ]
+            self.rev_align.extract_barcode(
+                self.master_read.rc_start, self.master_read.rc_stop
+            )
         )
         return (
             buffer_merge(fwd_bc, rev_bc).decode("ascii")
@@ -222,38 +216,36 @@ class SimplexAlignment(object):
     align_pairs = ["fwd-ref", "rev-ref", "fwd-rev", "core-ref"]
 
     def __init__(self, fwd_read, rev_read, master_read):
-        self.fwd_align = master_read.sw.align(fwd_read, master_read.seq)
-        self.rev_align = master_read.sw.align(rev_read, master_read.reverse_compliment)
+        self.fwd_align = master_read.aligner.align(fwd_read, master_read.seq)
+        self.rev_align = master_read.aligner.align(
+            rev_read, master_read.reverse_compliment
+        )
 
         self.fwd_read = fwd_read
         self.rev_read = rev_read
         self.master_read = master_read
 
-        self.fwd_core = fwd_read[self.fwd_align.query_core()]
-        self.rev_core = reverse_compliment(rev_read[self.rev_align.query_core()])
-        self.core_align = master_read.sw.align(self.fwd_core, self.rev_core)
-        self.core_consensus = self.core_align.build_consensus(
-            self.fwd_core, self.rev_core, len(master_read.seq)
-        )
-        self.final_align = master_read.sw.align(
+        self.fwd_core = self.fwd_align.query_core()
+        self.rev_core = reverse_compliment(self.rev_align.query_core())
+        self.core_align = master_read.aligner.align(self.fwd_core, self.rev_core)
+        self.core_consensus = self.core_align.build_consensus(len(master_read.seq))
+        self.final_align = master_read.aligner.align(
             self.core_consensus, master_read.core_seq
         )
-        self.final_score = self.final_align.nScore
+        self.final_score = self.final_align.score
 
     def get_scores(self):
         return (
-            self.fwd_align.nScore,
-            self.rev_align.nScore,
-            self.core_align.nScore,
-            self.final_align.nScore,
+            self.fwd_align.score,
+            self.rev_align.score,
+            self.core_align.score,
+            self.final_align.score,
         )
 
     def extract_barcode(self):
-        return self.core_consensus[
-            self.final_align.extract_barcode(
-                self.master_read.core_barcode_start, self.master_read.core_barcode_stop
-            )
-        ].decode("ascii")
+        return self.final_align.extract_barcode(
+            self.master_read.core_barcode_start, self.master_read.core_barcode_stop
+        ).decode("ascii")
 
 
 class MasterRead(object):
@@ -285,7 +277,7 @@ class MasterRead(object):
         self.core_barcode_start = self.barcode_start - self.core_start
         self.core_barcode_stop = self.barcode_stop - self.core_start
 
-        self.sw = SW(**self.alignment_params)
+        self.aligner = Aligner(**self.alignment_params)
 
         perfect_barcode = self.seq.replace(b"N", b"A")
         self.self_alignment = self.align(

@@ -3,73 +3,607 @@
 Simple python wrapper for SSW library
 Please put the path of libssw.so into LD_LIBRARY_PATH or pass it explicitly as a parameter
 By Yongan Zhao (March 2016)
+Revised by Mengyao Zhao on 2022-May-19
 """
 
 import ctypes as ct
-import numpy as np
 
-###############################################################################
-## load libssw (Chris' extension - very buggy)
-###############################################################################
-
-
-def get_libssw_path():
-    from importlib.util import find_spec
-
-    libssw_path = find_spec("libssw")
-    if libssw_path is not None:
-        return libssw_path.origin
-    try:
-        from pathlib import Path
-
-        # print(find_spec("AmpliconPE"))
-        p = Path(find_spec("AmpliconPE").submodule_search_locations[0])
-        return next(p.parent.glob("*libssw*"))
-    except:
-        from glob import glob
-
-        base_dir = p.parent.parent.parent
-        print(base_dir)
-        libssw_path = glob(str(base_dir) + "/**/libssw*.so", recursive=True)
-        if len(libssw_path):
-            return libssw_path[0]
-        # return glob("/home/runner/work/AmpliconPE/**/libssw*.so", recursive=True)[0]
-        raise ImportError("Could not the libssw shared-object library.")
-
-
-c_extension = ct.cdll.LoadLibrary(get_libssw_path())
-
-o_N = ord(b"N")
-o_gap = ord(b"-")
-
-###############################################################################
-###############################################################################
-
-
-def buffer_merge(qry, ref):
-    """buffer_merge(qry, ref) -> Performant consensus sequence of equal-length byte-strings with mismatches replaced by 'N'"""
-    if qry == ref:
-        return qry
-    qry_buffer = np.frombuffer(qry, dtype=np.uint8)
-    ref_buffer = np.frombuffer(ref, dtype=np.uint8)
-    return np.where(qry_buffer != ref_buffer, o_N, qry_buffer).tobytes()
+lBlosum50 = [
+    #  A   R   N   D   C   Q   E   G   H   I   L   K   M   F   P   S   T   W   Y   V   B   Z   X   *
+    5,
+    -2,
+    -1,
+    -2,
+    -1,
+    -1,
+    -1,
+    0,
+    -2,
+    -1,
+    -2,
+    -1,
+    -1,
+    -3,
+    -1,
+    1,
+    0,
+    -3,
+    -2,
+    0,
+    -2,
+    -1,
+    -1,
+    -5,  # A
+    -2,
+    7,
+    -1,
+    -2,
+    -4,
+    1,
+    0,
+    -3,
+    0,
+    -4,
+    -3,
+    3,
+    -2,
+    -3,
+    -3,
+    -1,
+    -1,
+    -3,
+    -1,
+    -3,
+    -1,
+    0,
+    -1,
+    -5,  # R
+    -1,
+    -1,
+    7,
+    2,
+    -2,
+    0,
+    0,
+    0,
+    1,
+    -3,
+    -4,
+    0,
+    -2,
+    -4,
+    -2,
+    1,
+    0,
+    -4,
+    -2,
+    -3,
+    5,
+    0,
+    -1,
+    -5,  # N
+    -2,
+    -2,
+    2,
+    8,
+    -4,
+    0,
+    2,
+    -1,
+    -1,
+    -4,
+    -4,
+    -1,
+    -4,
+    -5,
+    -1,
+    0,
+    -1,
+    -5,
+    -3,
+    -4,
+    6,
+    1,
+    -1,
+    -5,  # D
+    -1,
+    -4,
+    -2,
+    -4,
+    13,
+    -3,
+    -3,
+    -3,
+    -3,
+    -2,
+    -2,
+    -3,
+    -2,
+    -2,
+    -4,
+    -1,
+    -1,
+    -5,
+    -3,
+    -1,
+    -3,
+    -3,
+    -1,
+    -5,  # C
+    -1,
+    1,
+    0,
+    0,
+    -3,
+    7,
+    2,
+    -2,
+    1,
+    -3,
+    -2,
+    2,
+    0,
+    -4,
+    -1,
+    0,
+    -1,
+    -1,
+    -1,
+    -3,
+    0,
+    4,
+    -1,
+    -5,  # Q
+    -1,
+    0,
+    0,
+    2,
+    -3,
+    2,
+    6,
+    -3,
+    0,
+    -4,
+    -3,
+    1,
+    -2,
+    -3,
+    -1,
+    -1,
+    -1,
+    -3,
+    -2,
+    -3,
+    1,
+    5,
+    -1,
+    -5,  # E
+    0,
+    -3,
+    0,
+    -1,
+    -3,
+    -2,
+    -3,
+    8,
+    -2,
+    -4,
+    -4,
+    -2,
+    -3,
+    -4,
+    -2,
+    0,
+    -2,
+    -3,
+    -3,
+    -4,
+    -1,
+    -2,
+    -1,
+    -5,  # G
+    -2,
+    0,
+    1,
+    -1,
+    -3,
+    1,
+    0,
+    -2,
+    10,
+    -4,
+    -3,
+    0,
+    -1,
+    -1,
+    -2,
+    -1,
+    -2,
+    -3,
+    2,
+    -4,
+    0,
+    0,
+    -1,
+    -5,  # H
+    -1,
+    -4,
+    -3,
+    -4,
+    -2,
+    -3,
+    -4,
+    -4,
+    -4,
+    5,
+    2,
+    -3,
+    2,
+    0,
+    -3,
+    -3,
+    -1,
+    -3,
+    -1,
+    4,
+    -4,
+    -3,
+    -1,
+    -5,  # I
+    -2,
+    -3,
+    -4,
+    -4,
+    -2,
+    -2,
+    -3,
+    -4,
+    -3,
+    2,
+    5,
+    -3,
+    3,
+    1,
+    -4,
+    -3,
+    -1,
+    -2,
+    -1,
+    1,
+    -4,
+    -3,
+    -1,
+    -5,  # L
+    -1,
+    3,
+    0,
+    -1,
+    -3,
+    2,
+    1,
+    -2,
+    0,
+    -3,
+    -3,
+    6,
+    -2,
+    -4,
+    -1,
+    0,
+    -1,
+    -3,
+    -2,
+    -3,
+    0,
+    1,
+    -1,
+    -5,  # K
+    -1,
+    -2,
+    -2,
+    -4,
+    -2,
+    0,
+    -2,
+    -3,
+    -1,
+    2,
+    3,
+    -2,
+    7,
+    0,
+    -3,
+    -2,
+    -1,
+    -1,
+    0,
+    1,
+    -3,
+    -1,
+    -1,
+    -5,  # M
+    -3,
+    -3,
+    -4,
+    -5,
+    -2,
+    -4,
+    -3,
+    -4,
+    -1,
+    0,
+    1,
+    -4,
+    0,
+    8,
+    -4,
+    -3,
+    -2,
+    1,
+    4,
+    -1,
+    -4,
+    -4,
+    -1,
+    -5,  # F
+    -1,
+    -3,
+    -2,
+    -1,
+    -4,
+    -1,
+    -1,
+    -2,
+    -2,
+    -3,
+    -4,
+    -1,
+    -3,
+    -4,
+    10,
+    -1,
+    -1,
+    -4,
+    -3,
+    -3,
+    -2,
+    -1,
+    -1,
+    -5,  # P
+    1,
+    -1,
+    1,
+    0,
+    -1,
+    0,
+    -1,
+    0,
+    -1,
+    -3,
+    -3,
+    0,
+    -2,
+    -3,
+    -1,
+    5,
+    2,
+    -4,
+    -2,
+    -2,
+    0,
+    0,
+    -1,
+    -5,  # S
+    0,
+    -1,
+    0,
+    -1,
+    -1,
+    -1,
+    -1,
+    -2,
+    -2,
+    -1,
+    -1,
+    -1,
+    -1,
+    -2,
+    -1,
+    2,
+    5,
+    -3,
+    -2,
+    0,
+    0,
+    -1,
+    -1,
+    -5,  # T
+    -3,
+    -3,
+    -4,
+    -5,
+    -5,
+    -1,
+    -3,
+    -3,
+    -3,
+    -3,
+    -2,
+    -3,
+    -1,
+    1,
+    -4,
+    -4,
+    -3,
+    15,
+    2,
+    -3,
+    -5,
+    -2,
+    -1,
+    -5,  # W
+    -2,
+    -1,
+    -2,
+    -3,
+    -3,
+    -1,
+    -2,
+    -3,
+    2,
+    -1,
+    -1,
+    -2,
+    0,
+    4,
+    -3,
+    -2,
+    -2,
+    2,
+    8,
+    -1,
+    -3,
+    -2,
+    -1,
+    -5,  # Y
+    0,
+    -3,
+    -3,
+    -4,
+    -1,
+    -3,
+    -3,
+    -4,
+    -4,
+    4,
+    1,
+    -3,
+    1,
+    -1,
+    -3,
+    -2,
+    0,
+    -3,
+    -1,
+    5,
+    -3,
+    -3,
+    -1,
+    -5,  # V
+    -2,
+    -1,
+    5,
+    6,
+    -3,
+    0,
+    1,
+    -1,
+    0,
+    -4,
+    -4,
+    0,
+    -3,
+    -4,
+    -2,
+    0,
+    0,
+    -5,
+    -3,
+    -3,
+    6,
+    1,
+    -1,
+    -5,  # B
+    -1,
+    0,
+    0,
+    1,
+    -3,
+    4,
+    5,
+    -2,
+    0,
+    -3,
+    -3,
+    1,
+    -1,
+    -4,
+    -1,
+    0,
+    -1,
+    -2,
+    -2,
+    -3,
+    1,
+    5,
+    -1,
+    -5,  # Z
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -5,  # X
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    -5,
+    1,  # *
+]
 
 
 class CAlignRes(ct.Structure):
     """
     @typedef	structure of the alignment result
-    @field	nScore	    the best alignment score
-    @field	nScore2	    sub-optimal alignment score
-    @field	nRefBeg	    0-based best alignment beginning position on reference;	ref_begin1 = -1 when the best alignment beginning
+    @field	nScore	the best alignment score
+    @field	nScore2	sub-optimal alignment score
+    @field	nRefBeg	0-based best alignment beginning position on reference;	ref_begin1 = -1 when the best alignment beginning
                                             position is not available
-    @field	nRefEnd	    0-based best alignment ending position on reference
-    @field	nQryBeg	    0-based best alignment beginning position on read; read_begin1 = -1 when the best alignment beginning
+    @field	nRefEnd	0-based best alignment ending position on reference
+    @field	nQryBeg	0-based best alignment beginning position on read; read_begin1 = -1 when the best alignment beginning
                                             position is not available
-    @field	nQryEnd	    0-based best alignment ending position on read
-    @field	nRefEnd2    0-based sub-optimal alignment ending position on read
-    @field	sCigar	    best alignment cigar; stored the same as that in BAM format, high 28 bits: length, low 4 bits: M/I/D (0/1/2);
+    @field	nQryEnd	0-based best alignment ending position on read
+    @field	nRefEnd2	0-based sub-optimal alignment ending position on read
+    @field	sCigar	best alignment cigar; stored the same as that in BAM format, high 28 bits: length, low 4 bits: M/I/D (0/1/2);
                                     cigar = 0 when the best alignment path is not available
-    @field	nCigarLen   length of the cigar string; cigarLen = 0 when the best alignment path is not available
+    @field	nCigarLen	length of the cigar string; cigarLen = 0 when the best alignment path is not available
     """
 
     _fields_ = [
@@ -83,142 +617,6 @@ class CAlignRes(ct.Structure):
         ("sCigar", ct.POINTER(ct.c_uint32)),
         ("nCigarLen", ct.c_int32),
     ]
-
-    def __dalloc__(self):
-        print("__dalloc__ align destroy")
-        ssw.align_destroy(self)
-
-    def __del__(self):
-        ssw.align_destroy(self)
-
-    def build_cigar(self, query, reference):
-        """
-        build cigar string and align path based on cigar array returned by ssw_align
-        @param  q   query sequence
-        @param  r   reference sequence
-        @param  nQryBeg   begin position of query sequence
-        @param  nRefBeg   begin position of reference sequence
-        @param  lCigar   cigar array
-        """
-        sCigarInfo = b"MIDNSHP=X"
-        sQ = []
-        sR = []
-        nQOff = self.nQryBeg
-        nROff = self.nRefBeg
-        for idx in range(self.nCigarLen):
-            x = self.sCigar[idx]
-            n = x >> 4
-            m = x & 15
-            c = 77 if m > 8 else sCigarInfo[m]
-            if c == 77:  #'M'
-                sQ.append(query[nQOff : nQOff + n])
-                sR.append(reference[nROff : nROff + n])
-                nQOff += n
-                nROff += n
-            elif c == 73:  #'I'
-                sQ.append(query[nQOff : nQOff + n])
-                sR.append(b"-" * n)
-                nQOff += n
-            elif c == 68:  #'D'
-                sQ.append(b"-" * n)
-                sR.append(reference[nROff : nROff + n])
-                nROff += n
-            else:
-                raise ValueError("Invalid Cigar Annotation ({:})".format(c))
-
-        return b"".join(sQ), b"".join(sR)
-
-    def build_consensus(self, query, reference, expected_length):
-        """
-        Build consensus sequence from query/reference pair.
-
-        Replaces mismatch bases with 'N', and includes Insertions/Deletions if they
-        bring the consensus sequence closer to the `expected_length`.
-        """
-        sCigarInfo = b"MIDNSHP=X"
-        consensus = []
-        nQOff = self.nQryBeg
-        nROff = self.nRefBeg
-
-        max_length = sum([self.sCigar[idx] >> 4 for idx in range(self.nCigarLen)])
-        too_long = max_length > expected_length
-
-        for idx in range(self.nCigarLen):
-            x = self.sCigar[idx]
-            n = x >> 4
-            m = x & 15
-            c = 77 if m > 8 else sCigarInfo[m]
-
-            if c == 77:  #'M' = match
-                consensus.append(
-                    buffer_merge(query[nQOff : nQOff + n], reference[nROff : nROff + n])
-                )
-                nQOff += n
-                nROff += n
-            elif c == 73:  #'I' = query insertion
-                if too_long:
-                    max_length -= n
-                    too_long = max_length > expected_length
-                else:
-                    consensus.append(query[nQOff : nQOff + n])
-                nQOff += n
-            elif c == 68:  #'D' = query deletion
-                if too_long:
-                    max_length -= n
-                    too_long = max_length > expected_length
-                else:
-                    consensus.append(reference[nROff : nROff + n])
-                nROff += n
-            else:
-                raise ValueError("Invalid Cigar Annotation ({:})".format(c))
-
-        return b"".join(consensus)
-
-    def extract_barcode(self, barcode_start, barcode_stop):
-        sCigarInfo = b"MIDNSHP=X"
-        dBeg = self.nQryBeg - self.nRefBeg
-        truncation = min(self.nQryBeg, self.nRefBeg)
-
-        dRef_pre_start = 0
-
-        ref_start_remaining = barcode_start - dBeg - truncation
-        idx = 0
-        while ref_start_remaining > 0:
-            x = self.sCigar[idx]
-            n = x >> 4
-            m = x & 15
-            c = 77 if m > 8 else sCigarInfo[m]
-            if c == 77:  # "M" = match
-                ref_start_remaining -= n
-            elif c == 73:  #'I' = Ins
-                dRef_pre_start += n
-            elif c == 68:  #'D' = del
-                ref_start_remaining -= n
-            idx += 1
-
-        ref_barcode_remaining = barcode_stop + ref_start_remaining - barcode_start
-        dRef_barcode = 0
-        while ref_barcode_remaining > 0 and idx < self.nCigarLen:
-            x = self.sCigar[idx]
-            n = x >> 4
-            m = x & 15
-            c = 77 if m > 8 else sCigarInfo[m]
-            if c == 77:  # "M" = match
-                ref_barcode_remaining -= n
-            elif c == 73:  #'I' = Ins
-                dRef_barcode += n
-            elif c == 68:  #'D' = del
-                ref_barcode_remaining -= n
-                dRef_barcode -= n
-            idx += 1
-
-        return slice(
-            barcode_start + dBeg + dRef_pre_start,
-            barcode_stop + dBeg + dRef_barcode + dRef_pre_start,
-        )
-
-    def query_core(self):
-        return slice(self.nQryBeg, self.nQryEnd + 1)
 
 
 class CProfile(ct.Structure):
@@ -243,42 +641,34 @@ class CProfile(ct.Structure):
         ("nBias", ct.c_uint8),
     ]
 
-    def __dalloc__(self):
-        print("__dalloc__ align_destroy")
-        ssw.align_destroy(self)
-
-    def __del__(self):
-        ssw.align_destroy(self)
-
 
 class CSsw(object):
     """
     A class for libssw
     """
 
-    def __init__(self):
+    def __init__(self, ssw):
+        self.ssw = ssw
+        # init ssw_init
         """
-        init all para
-        @para   sLibpath    argparse object
-        @function	Create the query profile using the query sequence.
-        @param	read	pointer to the query sequence; the query sequence needs to be numbers
-        @param	readLen	length of the query sequence
-        @param	mat	pointer to the substitution matrix; mat needs to be corresponding to the read sequence
-        @param	n	the square root of the number of elements in mat (mat has n*n elements)
-        @param	score_size	estimated Smith-Waterman score; if your estimated best alignment score is surely < 255 please set 0; if
-                                                your estimated best alignment score >= 255, please set 1; if you don't know, please set 2
-        @return	pointer to the query profile structure
-        @note	example for parameter read and mat:
-                        If the query sequence is: ACGTATC, the sequence that read points to can be: 1234142
-                        Then if the penalty for match is 2 and for mismatch is -2, the substitution matrix of parameter mat will be:
-                        //A  C  G  T
-                          2 -2 -2 -2 //A
-                         -2  2 -2 -2 //C
-                         -2 -2  2 -2 //G
-                         -2 -2 -2  2 //T
-                        mat is the pointer to the array {2, -2, -2, -2, -2, 2, -2, -2, -2, -2, 2, -2, -2, -2, -2, 2}
+	@function	Create the query profile using the query sequence.
+	@param	read	pointer to the query sequence; the query sequence needs to be numbers
+	@param	readLen	length of the query sequence
+	@param	mat	pointer to the substitution matrix; mat needs to be corresponding to the read sequence
+	@param	n	the square root of the number of elements in mat (mat has n*n elements)
+	@param	score_size	estimated Smith-Waterman score; if your estimated best alignment score is surely < 255 please set 0; if
+						your estimated best alignment score >= 255, please set 1; if you don't know, please set 2
+	@return	pointer to the query profile structure
+	@note	example for parameter read and mat:
+			If the query sequence is: ACGTATC, the sequence that read points to can be: 1234142
+			Then if the penalty for match is 2 and for mismatch is -2, the substitution matrix of parameter mat will be:
+			//A  C  G  T
+			  2 -2 -2 -2 //A
+			 -2  2 -2 -2 //C
+			 -2 -2  2 -2 //G
+			 -2 -2 -2  2 //T
+			mat is the pointer to the array {2, -2, -2, -2, -2, 2, -2, -2, -2, -2, 2, -2, -2, -2, -2, 2}
         """
-        self.ssw = c_extension
         self.ssw_init = self.ssw.ssw_init
         self.ssw_init.argtypes = [
             ct.POINTER(ct.c_int8),
@@ -351,62 +741,3 @@ class CSsw(object):
         self.align_destroy = self.ssw.align_destroy
         self.align_destroy.argtypes = [ct.POINTER(CAlignRes)]
         self.align_destroy.restype = None
-
-
-ssw = CSsw()
-
-
-class SW(object):
-    def __dealloc__(self):
-        print("__dealloc__ SW Object")
-        ssw.init_destroy(self.qProfile)
-
-    def __del__(self):
-        print("__del__ SW Object")
-        ssw.init_destroy(self.qProfile)
-
-    def __init__(self, match=4, mismatch=2, gap_open=6, gap_extend=1):
-        import numpy as np
-
-        # init DNA score matrix
-        lEle = list(b"ACGTN")
-        nInt2Ele = np.array(lEle, dtype="int8")
-        self.nEle2Int = np.zeros(256, dtype="int8")
-        self.nEle2Int[nInt2Ele] = np.arange(len(lEle))
-        self.lScore = [
-            0 if nuc1 == o_N or nuc2 == o_N else (match if nuc1 == nuc2 else mismatch)
-            for nuc1 in lEle
-            for nuc2 in lEle
-        ]
-        # translate score matrix to ctypes
-        self.mat = (len(self.lScore) * ct.c_int8)()
-        self.mat[:] = self.lScore
-        self.match = match
-        self.mismatch = mismatch
-        self.gap_open = gap_open
-        self.gap_extend = gap_extend
-        self.lEle = lEle
-
-    def align(self, query, reference):
-        """Performs the underling alignment"""
-
-        nQuery = self.nEle2Int[list(query)].ctypes.data_as(ct.POINTER(ct.c_int8))
-        self.qProfile = ssw.ssw_init(
-            nQuery, ct.c_int32(len(query)), self.mat, len(self.lEle), 2
-        )
-        nMaskLen = len(query) // 2 if len(query) > 30 else 15
-        nFlag = 2
-        nReference = self.nEle2Int[list(reference)].ctypes.data_as(
-            ct.POINTER(ct.c_int8)
-        )
-        return ssw.ssw_align(
-            self.qProfile,
-            nReference,
-            ct.c_int32(len(reference)),
-            self.gap_open,
-            self.gap_extend,
-            nFlag,
-            0,
-            0,
-            nMaskLen,
-        ).contents
