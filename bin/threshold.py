@@ -1,13 +1,5 @@
 #!/usr/bin/env python3
 """
-
-Questions This Report Answers:
-
-1. Were my Fwd & Rev reads good quality?
-2. Did those two reads cover the same sequence?
-3. Is this sequence my barcodes?
-4. What else?
-    
 """
 import pandas as pd
 import numpy as np
@@ -33,7 +25,7 @@ info = (
     .unstack()
     .T
 )
-info.pop("Index Mismatches")
+index_mismatches = info.pop("Index Mismatches")
 
 max_scores = info["core-ref"].value_counts()
 assert len(max_scores) == 1, "Samples have different maximum Core-ref values."
@@ -46,6 +38,7 @@ gb = pileups.set_index("score").groupby(
     lambda ix: "Aligned" if ix > scaled_threshold else "Unaligned"
 )
 
+outputs = {}
 for quality, pileup_set in gb:
     S = pileup_set.groupby(["sample", "barcode"]).apply(
         lambda df: pd.Series(
@@ -57,3 +50,48 @@ for quality, pileup_set in gb:
         )
     )
     S.to_csv(f"{quality}.csv.gz")
+    outputs[quality] = S
+
+sample_reads = outputs.groupby(level=["outcome", "sample"])["reads"].sum()
+total_reads = sample_reads.groupby(level="outcome").sum()
+
+fractions = (
+    pd.Series(
+        {
+            "Aligned": total_reads["Aligned"],
+            "perfect": pileups.query("score == @max_final_score")["reads"].sum(),
+        }
+    )
+    / total_reads.sum()
+)
+
+print(
+    f"""
+Summary Stats:
+-------------
+
+{fractions['perfect']:.1%} of reads perfectly match the Master Read.
+{fractions['Aligned']:.1%} of reads align to the amplicon when a {threshold:.1%} normalized score threshold is applied.
+"""
+)
+
+outcomes = ["Adapter Index Mismatches", "Unaligned", "Aligned"]
+
+if index_mismatches.sum() == 0:
+    print(f"No {outcomes[0]}.")
+    outcomes.pop(0)
+else:
+    df = sample_reads.unstack(level="outcome")
+    df[outcomes[0]] = index_mismatches
+
+
+print(sample_reads[outcomes].to_string())
+
+# sns.barplot(
+#    data=sample_reads.reset_index(),
+#    x="sample",
+#    y="reads",
+#    hue="outcome",
+#    hue_order=outcomes,
+#    ax=axs[3],
+# )

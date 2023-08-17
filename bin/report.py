@@ -14,7 +14,6 @@ import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 
-threshold = 0.5
 DTYPES = dict(
     alignment="O",
     sample="O",
@@ -26,7 +25,7 @@ DTYPES = dict(
 alignments = ["fwd-ref", "rev-ref", "fwd-rev", "core-ref"]
 
 sns.set_style("ticks")
-rows = 4
+rows = 3
 fig, axs = plt.subplots(rows, figsize=(12, 9 * rows))
 
 info = (
@@ -45,7 +44,6 @@ index_mismatches = info.pop("Index Mismatches")
 max_scores = info.median().astype(int)
 
 max_final_score = max_scores["core-ref"]
-scaled_threshold = int(max_final_score * threshold)
 if not np.allclose(info.std(), np.zeros(len(alignments))):
     raise ValueError("Samples have different maximum alignment values.")
 
@@ -53,19 +51,6 @@ if not np.allclose(info.std(), np.zeros(len(alignments))):
 pileups = pd.read_csv("consolidated_pileups.csv.gz", dtype=DTYPES).eval(
     "total_alignment = score*reads/@max_final_score"
 )
-
-gb = pileups.set_index("score").groupby(
-    lambda ix: "Aligned" if ix > scaled_threshold else "Unaligned"
-)
-
-outputs = {}
-for quality, df in gb:
-    S = df.groupby(["sample", "barcode"])[["total_alignment", "reads"]].sum()
-    S["mean alignment"] = S.pop("total_alignment") / S["reads"]
-    outputs[quality] = S
-
-outputs = pd.concat(outputs, names=["outcome"])
-
 
 pileups_marginal = pileups.groupby(["sample", "barcode"])[
     ["total_alignment", "reads"]
@@ -106,7 +91,7 @@ weighted_means = (
 
 print("Mean Scores:")
 print("------------")
-print(weighted_means[alignments].to_string())
+print(weighted_means[alignments].to_string(float_format="{:.1%}".format))
 
 
 sns.histplot(
@@ -167,10 +152,6 @@ ax.text(
 
 cb = fig.colorbar(hb, ax=ax, label="reads")
 
-####################################
-#
-####################################
-
 
 def barcode_length_var(df):
     barcode_lengths = df["barcode"].str.len()
@@ -188,50 +169,5 @@ sns.pointplot(
     ax=axs[2],
 )
 
-axs[2].axvline(threshold, ls=":")
-
-
-sample_reads = outputs.groupby(level=["outcome", "sample"])["reads"].sum()
-total_reads = sample_reads.groupby(level="outcome").sum()
-
-
-fractions = (
-    pd.Series(
-        {
-            "Aligned": total_reads["Aligned"],
-            "perfect": pileups.query("score == @max_final_score")["reads"].sum(),
-        }
-    )
-    / total_reads.sum()
-)
-
-print(
-    f"""
-Summary Stats:
--------------
-
-{fractions['perfect']:.1%} of reads perfectly match the Master Read.
-{fractions['Aligned']:.1%} of reads align to the amplicon when a {threshold:.1%} normalized score threshold is applied.
-"""
-)
-
-outcomes = ["Adapter Index Mismatches", "Unaligned", "Aligned"]
-
-if index_mismatches.sum() == 0:
-    print(f"No {outcomes[0]}.")
-    outcomes.pop(0)
-else:
-    df = sample_reads.unstack(level="outcome")
-    df[outcomes[0]] = index_mismatches
-    sample_reads.stack()
-
-sns.barplot(
-    data=sample_reads.reset_index(),
-    x="sample",
-    y="reads",
-    hue="outcome",
-    hue_order=outcomes,
-    ax=axs[3],
-)
 
 plt.savefig("report.pdf")
