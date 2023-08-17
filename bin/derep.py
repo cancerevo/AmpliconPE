@@ -21,26 +21,26 @@ def derep(FASTQ_directory: Path, master_read: str, trim_fraction: float = 0.6):
     master_read = MasterRead(master_read, trim_fraction=trim_fraction)
 
     pileups = Counter()
-    # scores = Counter()
+    scores = Counter()
 
     file_pair = get_PE_FASTQs(FASTQ_directory)
     FASTQ_iter = pairedFASTQiter(*file_pair)
     for fwd_dna, rev_dna in FASTQ_iter:
 
         alignment = master_read.align(fwd_dna, rev_dna)
-        # scores[alignment.get_scores()] += 1
+        scores[alignment.get_scores()] += 1
         pileups[(alignment.final_score, alignment.extract_barcode())] += 1
 
     ## Output
 
     align_pairs = master_read.self_alignment.align_pairs
-    # score_series = pd.Series(
-    #    scores.values(),
-    #    index=pd.MultiIndex.from_tuples(scores.keys(), names=align_pairs),
-    #    name="reads",
-    # )
+    score_series = pd.Series(
+        scores.values(),
+        index=pd.MultiIndex.from_tuples(scores.keys(), names=align_pairs),
+        name="reads",
+    )
 
-    # score_series.to_csv(FASTQ_directory / "scores.csv")
+    score_series.to_csv(FASTQ_directory / "scores.csv")
 
     pileups = pd.Series(
         pileups.values(),

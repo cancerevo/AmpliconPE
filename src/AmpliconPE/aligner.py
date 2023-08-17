@@ -233,6 +233,11 @@ class Aligner(object):
             self.alphabet, bytes(list(range(len(self.alphabet))))
         )
 
+        for k, v in kwargs.items():
+            if not hasattr(self, k):
+                raise ValueError(f"{k} is not an Aligner parameter.")
+            setattr(self, k, v)
+
         self.score_array = [
             0
             if n_1 == o_N or n_2 == o_N

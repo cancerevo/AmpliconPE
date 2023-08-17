@@ -6,13 +6,16 @@ from pathlib import Path
 
 table_index_names = dict(pileups=["target", "barcode"], stats=["type", "outcome"])
 
+COMPRESSION_OPTIONS = {".zip", ".gz", ".bz2", ".zstd"}
+
 
 def consolidate(
     directory: Path,
     glob: str = "*",
     consolidated_prefix: str = "consolidated_",
     destructive: bool = False,
-    ignore_combined: bool = True,
+    ignore: list = ["Undetermined", "undetermined"],
+    compression: str = ".gz",
 ):
     """Globs csv output files into a single csv.
 
@@ -27,7 +30,9 @@ def consolidate(
         directory: Directory containing sample directories
         glob: csv basename to glob (e.g. `pileups`, `stats`, ...)
         consolidated_prefix: prefix of basename of consolidated csv(s).
-        destructive: Remove original files."""
+        destructive: Remove original files.
+        ignore: Sample names to not consolidate.
+        compression:"""
 
     if not directory.exists():
         raise FileNotFoundError(f"{directory} does not exist.")
@@ -36,7 +41,7 @@ def consolidate(
 
     globs = list(directory.glob(f"**/{glob}.csv"))
     basenames = set(map(lambda p: p.name, globs))
-    samples = set(map(lambda p: p.parts[-2], globs))
+    samples = set(map(lambda p: p.parts[-2], globs)) - set(ignore)
 
     print(f"Found {len(globs)} files.")
     print(f"Found the following {len(basenames)} basenames:")
@@ -57,7 +62,7 @@ def consolidate(
 
         combined = pd.concat(dfs, names=["sample"])
         combined.reset_index(0).to_csv(
-            Path(consolidated_prefix + basename), index=False
+            Path(consolidated_prefix + basename + compression), index=False
         )
 
 

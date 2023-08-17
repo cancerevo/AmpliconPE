@@ -46,8 +46,13 @@ perfect_imperfect_barcode = "NNNNAANNNN"
 
 
 def test_MasterRead():
-    perfect_score = 160
-    imperfect_score = 148
+    perfect_score = (len(read) - read.count("N")) * alignment_params["match"] * 2
+    imperfect_score = (
+        perfect_score
+        - alignment_params["match"]
+        + alignment_params["mismatch"]
+        - 2 * alignment_params["gap_open"]
+    )
 
     master_read = MasterRead(read, **alignment_params)
     assert master_read.max_score == perfect_score
@@ -61,8 +66,8 @@ def test_MasterRead():
 
 
 def test_simplexMasterRead():
-    perfect_scores = (80, 80, 112, 28)
-    imperfect_score = 28
+    perfect_scores = (120, 120, 168, 42)
+    imperfect_score = 42
     master_read = SimplexMasterRead(read, **alignment_params)
     perfect_alignment = master_read.align(*perfect_seq_pair)
 
