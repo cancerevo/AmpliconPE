@@ -52,14 +52,18 @@ for quality, pileup_set in gb:
     S.to_csv(f"{quality}.csv.gz")
     outputs[quality] = S
 
-sample_reads = outputs.groupby(level=["outcome", "sample"])["reads"].sum()
+sample_reads = (
+    pd.concat(outputs, names=["outcome"])
+    .groupby(level=["outcome", "sample"])["reads"]
+    .sum()
+)
 total_reads = sample_reads.groupby(level="outcome").sum()
 
 fractions = (
     pd.Series(
         {
             "Aligned": total_reads["Aligned"],
-            "perfect": pileups.query("score == @max_final_score")["reads"].sum(),
+            "perfect": pileups.query("score == @max_score")["reads"].sum(),
         }
     )
     / total_reads.sum()

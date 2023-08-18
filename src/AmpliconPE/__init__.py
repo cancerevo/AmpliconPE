@@ -103,11 +103,16 @@ class pairedFASTQiter(object):
 
 
 # See https://stackoverflow.com/questions/11679855/introducing-mutations-in-a-dna-string-in-python
-def mismatcher(word, i=2, alterations="ACGTN"):
+def mismatcher(word, mismatches, alterations="ACGTN", InDels=True):
     """Iterator that yields all possible deviations of `word` up to i differences with `alterations` as all alternate characters."""
     from itertools import combinations, product
 
-    for d in range(i + 1):
+    if mismatches == 0:
+        raise ValueError(f"Mismatches must be > 0.")
+    if mismatches > len(word):
+        raise ValueError("{mismatches=} must be < {len(word)=}.")
+
+    for d in range(1, mismatches + 1):
         for locs in combinations(range(len(word)), d):
             thisWord = [[char] for char in word]
             for loc in locs:
@@ -115,6 +120,16 @@ def mismatcher(word, i=2, alterations="ACGTN"):
                 thisWord[loc] = [l for l in alterations if l != origChar]
             for poss in product(*thisWord):
                 yield "".join(poss)
+            if InDels:  # Deletions
+                yield "".join((nuc for i, nuc in enumerate(word) if i not in locs))
+
+        if InDels:  # Insertions
+            for locs in combinations(range(len(word) + 1), d):
+                start = word[: locs[0]]
+                for inserts in product(alterations, repeat=d):
+                    yield start + "".join(
+                        (insert + word[loc:] for insert, loc in zip(inserts, locs))
+                    )
 
 
 # See https://realpython.com/inherit-python-dict/
@@ -122,7 +137,7 @@ class BarcodeSet(dict):
     def __setitem__(self, barcode, target):
         from scipy.spatial.distance import hamming
 
-        for mismatch in mismatcher(barcode, self.n_mismatches):
+        for mismatch in mismatcher(barcode, self.n_mismatches, InDels=self.InDels):
             if mismatch in self:
                 if self.robust:
                     existing_targets = self[mismatch]
@@ -134,6 +149,8 @@ class BarcodeSet(dict):
                     )
                 else:
                     other_target = self[mismatch]
+                    if other_target == target:
+                        continue
                     raise ValueError(
                         f"""
 {mismatch}, a {hamming(mismatch, barcode):n}-nt mismatch of {barcode} -> {self[barcode]}, is already in this BarcodeSet, 
@@ -150,8 +167,9 @@ Use BarcodeSet(robust=True) if you would like non-unique mismatches to map to a 
             self.inverse_base[v] = k
             self[k] = v
 
-    def __init__(self, *args, n_mismatches=1, robust=False):
+    def __init__(self, *args, n_mismatches=1, robust=False, InDels=True):
         self.n_mismatches = n_mismatches
+        self.InDels = InDels
         self.robust = robust
         self.inverse_base = dict()
         if len(args) == 1:

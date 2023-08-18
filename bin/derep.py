@@ -7,7 +7,7 @@ from AmpliconPE import SimplexMasterRead as MasterRead, pairedFASTQiter, get_PE_
 from collections import Counter
 
 
-def derep(FASTQ_directory: Path, master_read: str, trim_fraction: float = 0.6):
+def derep(FASTQ_directory: Path, master_read: str, trim_fraction: float = 0.75):
     """Lossless barcode extraction from Paired-End (PE) FASTQ reads & dereplicates
 
     Args:

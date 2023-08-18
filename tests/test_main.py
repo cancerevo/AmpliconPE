@@ -85,8 +85,12 @@ def test_simplexMasterRead():
 
 def test_BarcodeSet():
     barcodes = {10 * "A": "As", 10 * "C": "Cs", 10 * "G": "Gs", 10 * "T": "Ts"}
-    barcode_map = BarcodeSet(barcodes, n_mismatches=3)
+    barcode_map = BarcodeSet(barcodes, n_mismatches=3, InDels=True)
+    print("here")
+    print(barcode_map)
     assert barcode_map[5 * "A" + 3 * "G" + 2 * "A"] == "As"
+
+    # assert barcode_map[5 * 'A' + 3*'G' + 5*'A'] == 'As'
 
 
 """
