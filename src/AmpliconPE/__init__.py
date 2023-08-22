@@ -137,37 +137,33 @@ class BarcodeSet(dict):
     def __setitem__(self, barcode, target):
         from scipy.spatial.distance import hamming
 
+        assert type(target) is not set, "top"
+        super().__setitem__(barcode, target)
         for mismatch in mismatcher(barcode, self.n_mismatches, InDels=self.InDels):
-            if mismatch in self:
-                if self.robust:
-                    existing_targets = self[mismatch]
-                    super().__setitem__(
-                        mismatch,
-                        existing_targets | {target}
-                        if type(existing_targets) is type(self)
-                        else {existing_targets, target},
-                    )
-                else:
-                    other_target = self[mismatch]
-                    if other_target == target:
-                        continue
+            if mismatch in self and self[mismatch] != target:
+                other_targets = self[mismatch]
+                if not self.robust:
                     raise ValueError(
                         f"""
 {mismatch}, a {hamming(mismatch, barcode):n}-nt mismatch of {barcode} -> {self[barcode]}, is already in this BarcodeSet, 
-as a {hamming(mismatch, self.inverse_base[other_target]):n}-nt mismatch of {self.inverse_base[other_target]} -> {other_target}.
+as a {hamming(mismatch, self.inverse_base[other_targets]):n}-nt mismatch of {self.inverse_base[other_targets]} -> {other_targets}.
 There are currently {len(self)} barcodes in this n_mismatches={self.n_mismatches:n} set.
-Use BarcodeSet(robust=True) if you would like non-unique mismatches to map to a set of all possible labels."""
+Use RobustBarcodeSet, if you would like non-unique mismatches to map to a set of all possible labels."""
                     )
-
-            super().__setitem__(mismatch, target)
-        super().__setitem__(barcode, target)
+                if type(other_targets) is not set:
+                    super().__setitem__(mismatch, {other_targets, target})
+                else:
+                    other_targets |= {target}
+                    super().__setitem__(mismatch, other_targets)
+            else:
+                super().__setitem__(mismatch, target)
 
     def update(self, other):
         for k, v in other.items():
             self.inverse_base[v] = k
             self[k] = v
 
-    def __init__(self, *args, n_mismatches=1, robust=False, InDels=True):
+    def __init__(self, *args, n_mismatches=1, robust=True, InDels=True):
         self.n_mismatches = n_mismatches
         self.InDels = InDels
         self.robust = robust
@@ -177,10 +173,8 @@ Use BarcodeSet(robust=True) if you would like non-unique mismatches to map to a 
 
     def pop_nonunique(self):
         if not self.robust:
-            raise RuntimeError(
-                "Cannot remove non-unique barcodes from a BarcodeSet that is not `robust`"
-            )
-        return {k: v for k, v in self.items() if type(v) is type(set)}
+            raise ValueError("Must be Robust BarcodeSet to have non-unique targets.")
+        return {k: v for k, v in self.items() if type(v) is set}
 
 
 class DoubleAlignment(object):

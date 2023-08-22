@@ -35,7 +35,7 @@ scaled_threshold = int(max_score * threshold)
 
 pileups = pd.read_csv("consolidated_pileups.csv.gz", dtype=DTYPES)
 gb = pileups.set_index("score").groupby(
-    lambda ix: "Aligned" if ix > scaled_threshold else "Unaligned"
+    lambda ix: "aligned" if ix > scaled_threshold else "unaligned"
 )
 
 outputs = {}
@@ -62,7 +62,7 @@ total_reads = sample_reads.groupby(level="outcome").sum()
 fractions = (
     pd.Series(
         {
-            "Aligned": total_reads["Aligned"],
+            "aligned": total_reads["aligned"],
             "perfect": pileups.query("score == @max_score")["reads"].sum(),
         }
     )
@@ -75,7 +75,7 @@ Summary Stats:
 -------------
 
 {fractions['perfect']:.1%} of reads perfectly match the Master Read.
-{fractions['Aligned']:.1%} of reads align to the amplicon when a {threshold:.1%} normalized score threshold is applied.
+{fractions['aligned']:.1%} of reads align to the amplicon when a {threshold:.1%} normalized score threshold is applied.
 """
 )
 
