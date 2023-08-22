@@ -13,15 +13,8 @@ import seaborn as sns
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
+from AmpliconPE.shared import DTYPES
 
-DTYPES = dict(
-    alignment="O",
-    sample="O",
-    max_value=np.int64,
-    barcode="O",
-    reads=np.int64,
-    score=np.int64,
-)
 alignments = ["fwd-ref", "rev-ref", "fwd-rev", "core-ref"]
 
 sns.set_style("ticks")

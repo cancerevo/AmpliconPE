@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
 import pandas as pd
 from jsonargparse import CLI
-
 from pathlib import Path
-
-table_index_names = dict(pileups=["target", "barcode"], stats=["type", "outcome"])
-
-COMPRESSION_OPTIONS = {".zip", ".gz", ".bz2", ".zstd"}
 
 
 def consolidate(
     directory: Path,
     glob: str = "*",
-    consolidated_prefix: str = "consolidated_",
+    output_dir: Path = "consolidated",
     destructive: bool = False,
     ignore: list = ["Undetermined", "undetermined"],
     compression: str = ".gz",
@@ -29,7 +24,7 @@ def consolidate(
     Args:
         directory: Directory containing sample directories
         glob: csv basename to glob (e.g. `pileups`, `stats`, ...)
-        consolidated_prefix: prefix of basename of consolidated csv(s).
+        output_dir: Directory of consolidated csv(s).
         destructive: Remove original files.
         ignore: Sample names to not consolidate.
         compression:"""
@@ -38,6 +33,7 @@ def consolidate(
         raise FileNotFoundError(f"{directory} does not exist.")
     if not directory.is_dir():
         raise ValueError(f"{directory} is not a directory.")
+    output_dir.mkdir(exist_ok=True)
 
     globs = list(directory.glob(f"**/{glob}.csv"))
     basenames = set(map(lambda p: p.name, globs))
@@ -62,7 +58,7 @@ def consolidate(
 
         combined = pd.concat(dfs, names=["sample"])
         combined.reset_index(0).to_csv(
-            Path(consolidated_prefix + basename + compression), index=False
+            output_dir / (basename + compression), index=False
         )
 
 
