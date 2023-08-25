@@ -5,6 +5,7 @@ from AmpliconPE import (
     pairedFASTQiter,
     reverse_compliment,
     get_PE_FASTQs,
+    mismatcher,
 )
 import pandas as pd
 from pathlib import Path
@@ -83,14 +84,20 @@ def test_simplexMasterRead():
     assert imperfect_alignment.extract_barcode() == perfect_imperfect_barcode
 
 
+BARCODES = {10 * "A": "As", 10 * "C": "Cs", 10 * "G": "Gs", 10 * "T": "Ts"}
+
+
 def test_BarcodeSet():
-    barcodes = {10 * "A": "As", 10 * "C": "Cs", 10 * "G": "Gs", 10 * "T": "Ts"}
-    barcode_map = BarcodeSet(barcodes, n_mismatches=3, InDels=True)
-    print("here")
-    print(barcode_map)
+    barcode_map = BarcodeSet(BARCODES, n_mismatches=3, InDels=True)
     assert barcode_map[5 * "A" + 3 * "G" + 2 * "A"] == "As"
 
-    # assert barcode_map[5 * 'A' + 3*'G' + 5*'A'] == 'As'
+
+def test_mismatcher():
+    for barcode in BARCODES.keys():
+        mismatches = set()
+        for mismatch in mismatcher(barcode, mismatches=1, InDels=True):
+            assert mismatch not in mismatches
+            mismatches.add(mismatch)
 
 
 """

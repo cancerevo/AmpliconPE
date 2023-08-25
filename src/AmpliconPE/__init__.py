@@ -111,7 +111,7 @@ def mismatcher(word, mismatches, alterations="ACGTN", InDels=True):
         raise ValueError(f"Mismatches must be > 0.")
     if mismatches > len(word):
         raise ValueError("{mismatches=} must be < {len(word)=}.")
-
+    deletions = set()
     for d in range(1, mismatches + 1):
         for locs in combinations(range(len(word)), d):
             thisWord = [[char] for char in word]
@@ -121,15 +121,22 @@ def mismatcher(word, mismatches, alterations="ACGTN", InDels=True):
             for poss in product(*thisWord):
                 yield "".join(poss)
             if InDels:  # Deletions
-                yield "".join((nuc for i, nuc in enumerate(word) if i not in locs))
+                deletion = "".join((nuc for i, nuc in enumerate(word) if i not in locs))
+                if deletion not in deletions:
+                    deletions.add(deletion)
+                    yield deletion
 
         if InDels:  # Insertions
+            insertions = set()
             for locs in combinations(range(len(word) + 1), d):
                 start = word[: locs[0]]
                 for inserts in product(alterations, repeat=d):
-                    yield start + "".join(
+                    insertion = start + "".join(
                         (insert + word[loc:] for insert, loc in zip(inserts, locs))
                     )
+                    if insertion not in insertions:
+                        insertions.add(insertion)
+                        yield insertion
 
 
 # See https://realpython.com/inherit-python-dict/
@@ -137,7 +144,6 @@ class BarcodeSet(dict):
     def __setitem__(self, barcode, target):
         from scipy.spatial.distance import hamming
 
-        assert type(target) is not set, "top"
         super().__setitem__(barcode, target)
         for mismatch in mismatcher(barcode, self.n_mismatches, InDels=self.InDels):
             if mismatch in self and self[mismatch] != target:
