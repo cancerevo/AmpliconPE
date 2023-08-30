@@ -50,11 +50,11 @@ def derep(FASTQ_directory: Path, master_read: str, trim_fraction: float = 0.75):
     pileups.to_csv(FASTQ_directory / "pileups.csv")
     info = pd.Series(
         master_read.self_alignment.get_scores(),
-        index=pd.Index(align_pairs, name="alignment"),
-        name="max_value",
+        index=pd.Index(map("{:} Max Score".format, align_pairs), name="stat"),
+        name="value",
     )
     info["Index Mismatches"] = FASTQ_iter.index_mismatches
-    info.to_csv(FASTQ_directory / "info.csv")
+    pd.Series(info, name="value").to_csv(FASTQ_directory / "info.csv")
 
 
 if __name__ == "__main__":

@@ -24,10 +24,10 @@ fig, axs = plt.subplots(rows, figsize=(12, 9 * rows))
 info = (
     pd.read_csv(
         "consolidated_info.csv.gz",
-        index_col=["alignment", "sample"],
-        usecols=["alignment", "sample", "max_value"],
+        index_col=["stat", "sample"],
+        usecols=["stat", "sample", "max_value"],
         dtype=DTYPES,
-    )["max_value"]
+    )["value"]
     .unstack()
     .T
 )

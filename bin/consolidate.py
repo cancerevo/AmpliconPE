@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import pandas as pd
 from jsonargparse import CLI
 from pathlib import Path
@@ -20,7 +21,6 @@ def consolidate(
      |- <Sample directory>
          |- pileups.csv
          |- <any output>.csv
-
     Args:
         directory: Directory containing sample directories
         glob: csv basename to glob (e.g. `pileups`, `stats`, ...)
