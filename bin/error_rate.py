@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
-from AmpliconPE import mismatcher
+from AmpliconPE import mismatcher, barcode_content
 from AmpliconPE.shared import DTYPES
-from scipy.stats import trim_mean
 import pandas as pd
 import numpy as np
 from pmap import pmap
-
+from scipy.stats import trim_mean
 
 pileups = pd.read_csv("aligned.csv.gz", dtype=DTYPES, index_col=["sample", "barcode"])[
     "reads"
@@ -101,12 +100,6 @@ print(mean_correlations)
 nucleotides = list("ACGTN")
 
 
-def barcode_content(barcodes):
-    return pd.concat(
-        {nuc: barcodes.str.count(nuc) for nuc in nucleotides}, names=["content"]
-    )
-
-
 seed_barcodes.index.names = ["sample", "seed barcode"]
 ratios = (
     spawns.reset_index("spawn barcode")
@@ -123,27 +116,23 @@ ratios = (
 content = ratios[["seed barcode", "spawn barcode"]].apply(barcode_content)
 delta_content = (content["spawn barcode"] - content["seed barcode"]).unstack("content")
 
-final = ratios.join(delta_content).set_index(nucleotides + ["sample"], append=True)
 
 error_rates = (
-    final.groupby(level=["sample"] + nucleotides)["Probability"]
+    ratios.join(delta_content)
+    .set_index(nucleotides + ["sample"], append=True)
+    .groupby(level=["sample"] + nucleotides)["Probability"]
     .agg(trunc_sqrt_mean)
-    .reset_index(nucleotides)
-)
-delta_size = error_rates[nucleotides].sum(axis=1)
-deletions = delta_size == -1
-insertions = delta_size == +1
+).reset_index()
 
-assert (
-    (error_rates.loc[~(deletions | insertions), nucleotides]).sum(axis=1) == 0
-).all()
+error_rates["Type"] = (
+    error_rates.reset_index(nucleotides)[nucleotides]
+    .sum(axis=1)
+    .map({-1: "Deletion", +1: "Insertion", 0: "Substitution"})
+)
+assert not error_rates["Type"].isnull().any()
+
 
 error_rates["From"] = error_rates[nucleotides].idxmin(axis=1)
 error_rates["To"] = error_rates[nucleotides].idxmax(axis=1)
 
-inv_deletion = "Deletion (inverted From/To)"  # Invert Deletions for graphing
-error_rates.loc[deletions, "To"] = error_rates.loc[deletions, "From"]
-error_rates.loc[deletions, "From"] = inv_deletion
-error_rates.loc[insertions, "From"] = "Insertion"
-
-error_rates.to_csv("substitution_error_rates.csv")
+error_rates.to_csv("substitution_error_rates.csv", index=False)

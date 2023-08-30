@@ -78,7 +78,7 @@ Summary Stats:
 """
     )
 
-    outcomes = ["Adapter Index Mismatches", "Unaligned", "Aligned"]
+    outcomes = ["Adapter Index Mismatches", "unaligned", "aligned"]
 
     if index_mismatches.sum() == 0:
         print(f"No {outcomes[0]}.")

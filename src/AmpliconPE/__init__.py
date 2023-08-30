@@ -2,11 +2,14 @@
 from .aligner import Aligner, buffer_merge
 import numpy as np
 from datetime import datetime
+import pandas as pd
 
 FASTQ_EXTs = "fastq", "fq"
 ILLUMINA_FILTERED = b":Y:"
 
 ALIGNMENT_PARAMS = dict(match=2, mismatch=-2, gap_open=6, gap_extend=1)
+
+nucleotides = "ACGTN"
 
 
 reverse_map = np.zeros(256, dtype=np.uint8)
@@ -16,6 +19,12 @@ for nuc, comp in zip(b"ATCGN", b"TAGCN"):
 
 def reverse_compliment(s):
     return b"".join(reverse_map[np.frombuffer(s, np.uint8)[::-1]])
+
+
+def barcode_content(barcodes):
+    return pd.concat(
+        {nuc: barcodes.str.count(nuc) for nuc in nucleotides}, names=["content"]
+    )
 
 
 def open_FASTQ(filename):
@@ -164,10 +173,13 @@ Use RobustBarcodeSet, if you would like non-unique mismatches to map to a set of
             else:
                 super().__setitem__(mismatch, target)
 
-    def update(self, other):
+    def update(self, other, errors=True):
         for k, v in other.items():
             self.inverse_base[v] = k
-            self[k] = v
+            if errors:
+                self[k] = v
+            else:
+                super().__setitem__(k, v)
 
     def __init__(self, *args, n_mismatches=1, robust=True, InDels=True):
         self.n_mismatches = n_mismatches
@@ -180,7 +192,8 @@ Use RobustBarcodeSet, if you would like non-unique mismatches to map to a set of
     def pop_nonunique(self):
         if not self.robust:
             raise ValueError("Must be Robust BarcodeSet to have non-unique targets.")
-        return {k: v for k, v in self.items() if type(v) is set}
+        nonunique = {k for k, v in self.items() if type(v) is set}
+        return {k: self.pop(k) for k in nonunique}
 
 
 class DoubleAlignment(object):
