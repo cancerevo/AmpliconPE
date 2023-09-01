@@ -54,7 +54,7 @@ neighbors = (
     .size()
 )
 
-background_error_rates = neighbors.groupby(level="sample")["neighbors"].mean()
+background_error_rates = neighbors.groupby(level="sample").mean()
 
 print(f"{len(null_barcodes)} null barcodes have the following background error_rates:")
 print(background_error_rates)
@@ -63,33 +63,42 @@ mismatches = list(mismatcher(example_bc, mismatches=1, InDels=True))
 print(f"Neighbors per Barcode: {len(mismatches)}")
 
 
-background_rate = background_error_rates.mean() / len(mismatches)
+background_rate = background_error_rates.mean()
+frac_background_rate = background_rate / len(mismatches)
 
 
 def trunc_mean(S):
-    return trim_mean(S, background_rate)
+    return trim_mean(S, frac_background_rate)
 
 
-def trunc_sqrt_mean(S):
-    return trim_mean(np.sqrt(S), background_rate) ** 2
-
-
-def sqrt_mean(S):
-    return np.sqrt(S).mean() ** 2
+def nsmallest(S):
+    return S.nsmallest(len(S) - int(round(background_rate))).mean()
 
 
 spawns = seed_barcodes.groupby(level="sample").apply(find_neighbors)
 
-spawn_stats = spawns.groupby(level=["sample", "seed barcode"]).agg(
-    [np.median, np.mean, trunc_mean, trunc_sqrt_mean, sqrt_mean]
-)
+gb = spawns.groupby(level=["sample", "seed barcode"])
+transformations = {
+    "none": [lambda S: S, lambda S: S],
+    "poisson": [lambda S: np.sqrt(S), lambda S: S**2],
+    "log": [lambda S: np.log(S), lambda S: np.exp(S)],
+}
+spawn_stats = pd.concat(
+    {
+        (name, stat.__name__): inverse(transformation(gb.agg(stat)))
+        for name, (transformation, inverse) in transformations.items()
+        for stat in [np.mean, trunc_mean, nsmallest]
+    },
+    names=["transformation", "estimator"],
+).unstack(["transformation", "estimator"])
 
-spawn_stats["seed reads"] = seed_barcodes
 
-correlations = spawn_stats.groupby(level="sample").corr()["seed reads"]
-mean_correlations = correlations.unstack().mean()
-mean_correlations.pop("seed reads")
-print(mean_correlations)
+def correlation(col):
+    return pd.concat([col, seed_barcodes]).corr().iloc[0, 1]
+
+
+correlations = spawn_stats.apply(correlation)
+print(correlations)
 #
 # median             0.467
 # mean              -0.229
@@ -117,6 +126,10 @@ content = ratios[["seed barcode", "spawn barcode"]].apply(barcode_content)
 delta_content = (content["spawn barcode"] - content["seed barcode"]).unstack("content")
 
 
+def trunc_sqrt_mean(S):
+    return trunc_mean(np.sqrt(S)) ** 2
+
+
 error_rates = (
     ratios.join(delta_content)
     .set_index(nucleotides + ["sample"], append=True)
@@ -124,15 +137,50 @@ error_rates = (
     .agg(trunc_sqrt_mean)
 ).reset_index()
 
-error_rates["Type"] = (
-    error_rates.reset_index(nucleotides)[nucleotides]
-    .sum(axis=1)
-    .map({-1: "Deletion", +1: "Insertion", 0: "Substitution"})
-)
-assert not error_rates["Type"].isnull().any()
+
+def annotate_change(nucleotide_change):
+    K80 = """
+* T V V N
+T * V V N
+V V * T N
+V V T * N
+N N N N *"""
+    K_categories = {
+        "T": "transition",
+        "V": "transversion",
+        "N": "sequencing error",
+        "*": "*",
+    }
+    nucleotides = list("AGCTN")
+    mut_categories = (
+        pd.DataFrame(
+            [list(map(str.split, line)) for line in K80.splitlines()[1:]],
+            columns=pd.Index(nucleotides, name="From"),
+            index=pd.Index(nucleotides, name="To"),
+        )
+        .stack()
+        .map(K_categories)
+    )
+
+    From = nucleotide_change.idxmin(axis=1)
+    To = nucleotide_change.idxmax(axis=1)
+
+    Type = nucleotide_change.sum(axis=1).map(
+        {-1: "Deletion", +1: "Insertion", 0: "Substitution"}
+    )
+    out = pd.DataFrame({"From": From, "To": To, "Type": Type})
+    out.loc[:, "Substitution"] = out.loc[:, "Substitution"][["From", "To"]].map(
+        mut_categories
+    )
+    assert not out["Type"].isnull().any()
+    return out
 
 
-error_rates["From"] = error_rates[nucleotides].idxmin(axis=1)
-error_rates["To"] = error_rates[nucleotides].idxmax(axis=1)
+annotated_rates = error_rates.join(
+    annotate_change(error_rates.reset_index(nucleotides)[nucleotides])
+).set_index(["Type", "From", "To"] + nucleotides)
+annotated_rates.to_csv("error_rates.csv")
 
-error_rates.to_csv("substitution_error_rates.csv", index=False)
+summary = annotated_rates.groupby(level="Type").mean()
+print("Overall Error Rates:")
+print(summary.to_string())

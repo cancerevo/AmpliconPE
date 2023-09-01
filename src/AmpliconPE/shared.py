@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 DTYPES = dict(
     stat="O",
@@ -8,3 +9,11 @@ DTYPES = dict(
     reads=np.int64,
     score=np.int64,
 )
+
+nucleotides = "ACGTN"
+
+
+def barcode_content(barcodes):
+    return pd.concat(
+        {nuc: barcodes.str.count(nuc) for nuc in nucleotides}, names=["content"]
+    )
