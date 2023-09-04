@@ -5,7 +5,6 @@ from AmpliconPE import (
     pairedFASTQiter,
     reverse_compliment,
     get_PE_FASTQs,
-    mismatcher,
 )
 import pandas as pd
 from pathlib import Path
@@ -88,16 +87,8 @@ BARCODES = {10 * "A": "As", 10 * "C": "Cs", 10 * "G": "Gs", 10 * "T": "Ts"}
 
 
 def test_BarcodeSet():
-    barcode_map = BarcodeSet(BARCODES, n_mismatches=3, InDels=True)
+    barcode_map = BarcodeSet(BARCODES, mismatches=3, InDels=True)
     assert barcode_map[5 * "A" + 3 * "G" + 2 * "A"] == "As"
-
-
-def test_mismatcher():
-    for barcode in BARCODES.keys():
-        mismatches = set()
-        for mismatch in mismatcher(barcode, mismatches=1, InDels=True):
-            assert mismatch not in mismatches
-            mismatches.add(mismatch)
 
 
 """

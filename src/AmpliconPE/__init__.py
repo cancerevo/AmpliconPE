@@ -102,89 +102,96 @@ class pairedFASTQiter(object):
                 return fwd_dna, rev_dna
 
 
-# See https://stackoverflow.com/questions/11679855/introducing-mutations-in-a-dna-string-in-python
-def mismatcher(word, mismatches, alterations="ACGTN", InDels=True):
-    """Iterator that yields all possible deviations of `word` up to i differences with `alterations` as all alternate characters."""
-    from itertools import combinations, product
-
-    if mismatches == 0:
-        raise ValueError(f"Mismatches must be > 0.")
-    if mismatches > len(word):
-        raise ValueError("{mismatches=} must be < {len(word)=}.")
-    deletions = set()
-    for d in range(1, mismatches + 1):
-        for locs in combinations(range(len(word)), d):
-            thisWord = [[char] for char in word]
-            for loc in locs:
-                origChar = word[loc]
-                thisWord[loc] = [l for l in alterations if l != origChar]
-            for poss in product(*thisWord):
-                yield "".join(poss)
-            if InDels:  # Deletions
-                deletion = "".join((nuc for i, nuc in enumerate(word) if i not in locs))
-                if deletion not in deletions:
-                    deletions.add(deletion)
-                    yield deletion
-
-        if InDels:  # Insertions
-            insertions = set()
-            for locs in combinations(range(len(word) + 1), d):
-                start = word[: locs[0]]
-                for inserts in product(alterations, repeat=d):
-                    insertion = start + "".join(
-                        (insert + word[loc:] for insert, loc in zip(inserts, locs))
-                    )
-                    if insertion not in insertions:
-                        insertions.add(insertion)
-                        yield insertion
-
-
 # See https://realpython.com/inherit-python-dict/
 class BarcodeSet(dict):
-    def __setitem__(self, barcode, target):
-        from scipy.spatial.distance import hamming
+    alphabet = "ACGTN"
 
+    # See https://stackoverflow.com/questions/11679855/introducing-mutations-in-a-dna-string-in-python
+    def mismatcher(self, word):
+        """Generator yielding all possible mismatches of `word`.
+
+        Duplicate mismatches are yielded when InDels are created."""
+        from itertools import combinations, product
+
+        if self.mismatches > len(word):
+            raise ValueError("{self.mismatches=} must be < {len(word)=}.")
+        for d in range(1, self.mismatches + 1):
+            for locs in combinations(range(len(word)), d):
+                thisWord = [[char] for char in word]
+                for loc in locs:
+                    origChar = word[loc]
+                    thisWord[loc] = [l for l in self.alphabet if l != origChar]
+                for poss in product(*thisWord):
+                    yield "".join(poss)
+                if self.InDels:  # Deletions
+                    if self.fixed_length:
+                        for flank in self.alphabet:
+                            yield flank + "".join(
+                                (nuc for i, nuc in enumerate(word) if i not in locs)
+                            )
+                            yield "".join(
+                                (nuc for i, nuc in enumerate(word) if i not in locs)
+                            ) + flank
+                    else:
+                        yield "".join(
+                            (nuc for i, nuc in enumerate(word) if i not in locs)
+                        )
+
+            if self.InDels:  # Insertions
+                for locs in combinations(range(len(word) + 1), d):
+                    start = word[: locs[0]]
+                    for inserts in product(self.alphabet, repeat=d):
+                        insertion = start + "".join(
+                            (insert + word[loc:] for insert, loc in zip(inserts, locs))
+                        )
+                        if self.fixed_length:
+                            yield insertion[1:]
+                            yield insertion[:-1]
+                        else:
+                            yield insertion
+
+    def __setitem__(self, barcode, target):
         super().__setitem__(barcode, target)
-        for mismatch in mismatcher(barcode, self.n_mismatches, InDels=self.InDels):
+        self.inverse_base[target] = barcode
+        for mismatch in self.mismatcher(barcode):
             if mismatch in self and self[mismatch] != target:
                 other_targets = self[mismatch]
                 if not self.robust:
+                    from scipy.spatial.distance import hamming
+
                     raise ValueError(
                         f"""
 {mismatch}, a {hamming(mismatch, barcode):n}-nt mismatch of {barcode} -> {self[barcode]}, is already in this BarcodeSet, 
 as a {hamming(mismatch, self.inverse_base[other_targets]):n}-nt mismatch of {self.inverse_base[other_targets]} -> {other_targets}.
-There are currently {len(self)} barcodes in this n_mismatches={self.n_mismatches:n} set.
+There are currently {len(self)} barcodes in this mismatches={self.mismatches:n} set.
 Use RobustBarcodeSet, if you would like non-unique mismatches to map to a set of all possible labels."""
                     )
-                if type(other_targets) is not set:
-                    super().__setitem__(mismatch, {other_targets, target})
-                else:
-                    other_targets |= {target}
-                    super().__setitem__(mismatch, other_targets)
-            else:
-                super().__setitem__(mismatch, target)
+                target = (
+                    (other_targets | {target})
+                    if type(other_targets) is set
+                    else {other_targets, target}
+                )
 
-    def update(self, other, errors=True):
+            super().__setitem__(mismatch, target)
+
+    def update(self, other):
         for k, v in other.items():
-            self.inverse_base[v] = k
-            if errors:
-                self[k] = v
-            else:
-                super().__setitem__(k, v)
+            self[k] = v
 
     def __init__(
-        self, *args, n_mismatches=1, robust=True, InDels=True, missing="unknown"
+        self, *args, robust=True, InDels=True, fixed_length=False, mismatches=1
     ):
-        self.n_mismatches = n_mismatches
-        self.InDels = InDels
         self.robust = robust
+        self.InDels = InDels
+        self.fixed_length = fixed_length
+        self.mismatches = mismatches
+
         self.inverse_base = dict()
-        self.missing = missing
         if len(args) == 1:
             self.update(dict(args[0]))
 
     def __missing__(self, key):
-        return self.missing
+        return key
 
     def pop_nonunique(self):
         if not self.robust:
