@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from AmpliconPE import BarcodeSet
-from AmpliconPE.shared import DTYPES
+from AmpliconPE.shared import DTYPES, annotate_mutations
 from pathlib import Path
 import pandas as pd
 from jsonargparse import CLI
@@ -24,33 +24,48 @@ def error_rate(
         background=pileups[pileups <= max_background_barcode_size], largest=pileups
     )
 
-    barcode_groups = {}
+    barcode_group = {}
     for group, barcode_set in barcode_sets.items():
         queried = barcode_set.nlargest(barcodes_queried)
-        possible_neighbors = BarcodeSet(zip(queried.index, queried.index), robust=True)
-        possible_neighbors.pop_nonunique()
-        neighbors = frozenset(possible_neighbors.keys()) & all_barcodes
-        barcode_groups[group] = {
-            "seeds queried": frozenset(possible_neighbors.values()),
-            "seed->spawn": possible_neighbors,
-            "spawn found": neighbors,
+        possible_neighbors = BarcodeSet(
+            zip(queried.index, queried.index),
+            robust=True,
+            InDels=True,
+            fixed_length=False,
+        )
+        usable_neighbors = {
+            k: v for k, v in possible_neighbors.items() if k != v and type(v) != set
         }
+        barcode_group[group] = usable_neighbors
 
-    largest = barcode_groups["largest"]
-    error_df = (
-        pileups[largest["spawn found"]]
+    all_mutations = (
+        pd.Series(barcode_group["largest"], name="From")
         .reset_index()
-        .rename(columns={"reads": "spawn reads", "barcode": "spawn barcode"})
+        .rename(columns=dict(index="To"))
     )
-    error_df["seed barcode"] = error_df["spawn barcode"].map(largest["seed->spawn"])
-    error_df["spawn reads"] = pileups[error_df["seed barcode"]]
-    error_df.to_csv(FASTQ_directory / output_file, index=False)
+    annotations = annotate_mutations(all_mutations)
+    for name, barcodes in all_mutations.iteritems():
+        annotations[f"{name} reads"] = barcodes.map(pileups).fillna(0).astype(int)
 
-    info = pd.DataFrame(
-        {name: len(group) for name, group in barcode_groups.items()}
-    ).rename({"seed mapping": "spawn queried"}, axis=0)
-    info.index.names = ["# of barcodes"]
-    info.to_csv(FASTQ_directory / info_file)
+    annotations.sort_values("From reads").to_csv(
+        FASTQ_directory / output_file, index=False
+    )
+
+    info = pd.concat(
+        {
+            name: pd.Series(
+                {
+                    "seeds queried": len(frozenset(mapping.values())),
+                    "spawn queried": len(mapping),
+                    "spawn found": len(all_barcodes & frozenset(mapping.keys())),
+                },
+                name="barcodes",
+            )
+            for name, mapping in barcode_group.items()
+        }
+    )
+    info.index.names = ["group", "ensemble"]
+    info.unstack().T.to_csv(FASTQ_directory / info_file)
 
 
 if __name__ == "__main__":

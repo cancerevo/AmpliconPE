@@ -15,7 +15,7 @@ def threshold(
     output_names: list = ["unaligned", "aligned"],
 ):
 
-    info = pd.read_csv(directory / info_file, dtype=DTYPES).set_index("stat")["value"]
+    info = pd.read_csv(directory / info_file, dtype=DTYPES).set_index("stat")["reads"]
     max_score = info["core-ref max score"]
 
     pileups = pd.read_csv(directory / pileup_file, dtype=DTYPES).eval(

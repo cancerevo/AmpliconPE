@@ -33,28 +33,23 @@ def derep(FASTQ_directory: Path, master_read: str, trim_fraction: float = 0.75):
 
     ## Output
 
-    align_pairs = master_read.self_alignment.align_pairs
-    score_series = pd.Series(
-        scores.values(),
-        index=pd.MultiIndex.from_tuples(scores.keys(), names=align_pairs),
-        name="reads",
-    )
+    self_alignment = master_read.self_alignment
+    align_pairs = self_alignment.align_pairs
 
-    score_series.to_csv(FASTQ_directory / "scores.csv")
+    info = dict(
+        zip(
+            map("{:} max score".format, align_pairs),
+            master_read.self_alignment.get_scores(),
+        )
+    )
+    info["index mismatches"] = FASTQ_iter.index_mismatches
 
-    pileups = pd.Series(
-        pileups.values(),
-        name="reads",
-        index=pd.MultiIndex.from_tuples(pileups.keys(), names=["score", "barcode"]),
-    )
-    pileups.to_csv(FASTQ_directory / "pileups.csv")
-    info = pd.Series(
-        master_read.self_alignment.get_scores(),
-        index=pd.Index(map("{:} max score".format, align_pairs), name="stat"),
-        name="value",
-    )
-    info["Index Mismatches"] = FASTQ_iter.index_mismatches
-    pd.Series(info, name="value").to_csv(FASTQ_directory / "info.csv")
+    index_labels = dict(pileups=["score", "barcode"], scores=align_pairs, info=["stat"])
+
+    for name, index_label in index_labels.items():
+        pd.Series(eval(name), name="reads").to_csv(
+            FASTQ_directory / f"{name}.csv", index_label=index_labels[name]
+        )
 
 
 if __name__ == "__main__":

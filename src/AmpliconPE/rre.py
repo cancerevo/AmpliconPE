@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 
+alphabet = "ACGTN"
+
 
 def identify_neighbors(
     Start,
@@ -34,7 +36,7 @@ def identify_neighbors(
             spawn_ix += 1
         SNVs = {
             barcode[:i] + nuc + barcode[i + 1 :]
-            for nuc in "ACGT"
+            for nuc in alphabet
             for i, bc_nuc in enumerate(barcode)
             if nuc != bc_nuc
         }
@@ -48,14 +50,14 @@ def identify_neighbors(
             candidate_spawn |= deletions | {
                 barcode[:i] + nuc + barcode[i:]
                 for i in range(len(barcode) + 1)
-                for nuc in "ACGT"
+                for nuc in alphabet
             }
             if add_doubles:
                 candidate_spawn |= (
                     # double point mutations
                     {
                         SNV[:i] + nuc + SNV[i + 1 :]
-                        for nuc in "ACGT"
+                        for nuc in alphabet
                         for SNV in SNVs
                         for i, snv_nuc in enumerate(SNV)
                         if nuc != snv_nuc
@@ -64,7 +66,7 @@ def identify_neighbors(
                     # Deletions plus point mutations
                     {
                         deletion[:i] + nuc + deletion[i + 1 :]
-                        for nuc in "ACGT"
+                        for nuc in alphabet
                         for deletion in deletions
                         for i, del_nuc in enumerate(deletion)
                         if nuc != del_nuc
