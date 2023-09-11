@@ -4,7 +4,6 @@ from AmpliconPE.shared import nucleotides, barcode_content
 from AmpliconPE import BarcodeSet
 from pathlib import Path
 import numpy as np
-
 from jsonargparse import CLI
 
 
@@ -53,7 +52,7 @@ def estimate_errors(aligned_filename: Path, model_filename: Path = "error_model.
         return hashed_model[d_content.values.dot(HASHING_VECTOR)].dot(neighbors)
 
     aligned["sequencing errors"] = aligned["barcode"].apply(sequencing_errors)
-    error_loss = model.groupby("From").sum()
+    error_loss = model.groupby("From")["Probability"].sum()
     Ins = error_loss.pop("Ins")
     error_loss += Ins
 
@@ -61,9 +60,12 @@ def estimate_errors(aligned_filename: Path, model_filename: Path = "error_model.
         content.mul(error_loss, axis=1).sum(axis=1) * aligned["reads"]
     )
 
-    # from scipy.stats.distributions import poisson
-    # aligned['P_sequencing_error'] = 1 - poisson.cdf(aligned.reads, aligned['sequencing errors'])
-    aligned.to_csv(aligned_filename)
+    from scipy.stats.distributions import poisson
+
+    aligned["P_sequencing_error"] = 1 - poisson.cdf(
+        aligned.reads, aligned["sequencing errors"]
+    )
+    aligned.to_csv(aligned_filename, index=False)
 
 
 if __name__ == "__main__":
