@@ -44,7 +44,9 @@ def derep(FASTQ_directory: Path, master_read: str, trim_fraction: float = 0.75):
     )
     info["index mismatches"] = FASTQ_iter.index_mismatches
 
-    index_labels = dict(pileups=["score", "barcode"], alignment_scores=align_pairs, info=["stat"])
+    index_labels = dict(
+        pileups=["score", "barcode"], alignment_scores=align_pairs, info=["stat"]
+    )
 
     for name, index_label in index_labels.items():
         pd.Series(eval(name), name="reads").to_csv(

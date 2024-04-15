@@ -3,14 +3,11 @@ set -ex
 
 base_dir=$HOME/AmpliconPE
 data_dir=$base_dir/data
+bin_dir=$base_dir/bin
 master_read='GGGACCCGGANNNNNNNNAANNNNNTTNNNNNAANNNNNATGCCCAAGA'
-#for dir in $DataDir/TuBa-seq_FASTQs/*; 
-#do
-#    $AmpliconPEDir/bin/TuBa-seq.py --sgRNA_file $DataDir/sgRNA_info.csv $dir;
-#done
 
-ls -d $data_dir/TuBa-seq_FASTQs/* | parallel "$base_dir/bin/derep.py $master_read --sgRNA_file $data_dir/sgRNA_info.csv {}" 
+ls -d $data_dir/TuBa-seq_FASTQs/* | parallel "$bin_dir/derep.py {} $master_read && $bin_dir/threshold.py {} && $bin_dir/error_rate.py {}"
+ls $TuBa_FASTQs/*/aligned.csv | parallel "$bin_dir/estimate_errors.py {} --model_filename $ERROR_MODEL && $TuBa_bin/assign_targets.py {} --sgID_file $data_dir/sgRNA_info.csv --other_sgID_file $data_dir/all_sgRNAs.csv"
 
 $base_dir/bin/consolidate.py $data_dir/TuBa-seq_FASTQs;
-
 

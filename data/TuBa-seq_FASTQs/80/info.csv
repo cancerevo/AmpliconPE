@@ -1,6 +1,9 @@
-alignment,max_value
-fwd-ref,104
-rev-ref,104
-fwd-rev,196
-core-ref,60
-Index Mismatches,0
+stat,reads
+fwd-ref max score,52
+rev-ref max score,52
+fwd-rev max score,98
+core-ref max score,24
+index mismatches,0
+perfect reads,13700
+unaligned reads,6489
+aligned reads,14955
